@@ -4,19 +4,14 @@ import android.view.View;
 import android.view.ViewParent;
 import android.widget.TextView;
 
-import java.util.regex.Pattern;
-
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
-import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 public class MainHook implements IXposedHookLoadPackage {
 
     private static final String TAG = "RamStatusBar";
-    private static final Pattern TIME_PATTERN =
-            Pattern.compile("^\\d{1,2}:\\d{2}(:\\d{2})?\\s*(AM|PM|上午|下午)?$");
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
@@ -25,30 +20,45 @@ public class MainHook implements IXposedHookLoadPackage {
         }
 
         try {
-            XposedHelpers.findAndHookMethod(
-                    TextView.class,
-                    "onAttachedToWindow",
-                    new XC_MethodHook() {
-                        @Override
-                        protected void afterHookedMethod(MethodHookParam param) {
-                            try {
-                                TextView tv = (TextView) param.thisObject;
-                                CharSequence text = tv.getText();
-                                if (text != null && TIME_PATTERN.matcher(text.toString().trim()).matches()) {
-                                    XposedBridge.log(TAG + ": 疑似时钟类 -> "
-                                            + tv.getClass().getName()
-                                            + " | 文字=\"" + text + "\""
-                                            + " | id=" + safeIdName(tv)
-                                            + " | 父级链=" + parentChain(tv, 6));
-                                }
-                            } catch (Throwable t) {
-                            }
-                        }
-                    });
+            XposedBridge.hookAllConstructors(TextView.class, new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) {
+                    try {
+                        TextView tv = (TextView) param.thisObject;
+                        String className = tv.getClass().getName();
+                        String idName = safeIdName(tv);
 
-            XposedBridge.log(TAG + ": 诊断v2 hook 安装成功，等待发现时钟类...");
+                        boolean looksLikeClock =
+                                className.toLowerCase().contains("clock")
+                                        || idName.toLowerCase().contains("clock");
+
+                        if (looksLikeClock) {
+                            XposedBridge.log(TAG + ": [构造时刻] 发现候选 -> "
+                                    + className
+                                    + " | id=" + idName);
+
+                            final TextView finalTv = tv;
+                            tv.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        XposedBridge.log(TAG + ": [延迟检查] "
+                                                + finalTv.getClass().getName()
+                                                + " | 当前文字=\"" + finalTv.getText() + "\""
+                                                + " | 父级链=" + parentChain(finalTv, 6));
+                                    } catch (Throwable ignored) {
+                                    }
+                                }
+                            });
+                        }
+                    } catch (Throwable t) {
+                    }
+                }
+            });
+
+            XposedBridge.log(TAG + ": 诊断v3 构造函数hook 安装成功");
         } catch (Throwable t) {
-            XposedBridge.log(TAG + ": 诊断v2 hook 安装失败: " + t);
+            XposedBridge.log(TAG + ": 诊断v3 hook 安装失败: " + t);
         }
     }
 
