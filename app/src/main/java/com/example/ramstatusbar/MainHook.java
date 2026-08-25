@@ -26,7 +26,7 @@ public class MainHook implements IXposedHookLoadPackage {
     private static final String PREFS_NAME = "config";
     private static final String KEY_SHOW_TIME = "show_time";
 
-    private static final int DISPLAY_TOTAL_GB = 8;
+    private static final int[] COMMON_RAM_TIERS_GB = {3, 4, 6, 8, 12, 16, 18, 24, 32};
 
     private Handler mHandler;
     private final Map<TextView, Runnable> mUpdaters = new HashMap<>();
@@ -128,7 +128,18 @@ public class MainHook implements IXposedHookLoadPackage {
         am.getMemoryInfo(info);
 
         double availGb = info.availMem / 1024.0 / 1024.0 / 1024.0;
+        double rawTotalGb = info.totalMem / 1024.0 / 1024.0 / 1024.0;
+        int totalGb = roundToCommonTier(rawTotalGb);
 
-        return String.format(Locale.getDefault(), "%.1fG/%dG", availGb, DISPLAY_TOTAL_GB);
+        return String.format(Locale.getDefault(), "%.1fG/%dG", availGb, totalGb);
+    }
+
+    private int roundToCommonTier(double rawTotalGb) {
+        for (int tier : COMMON_RAM_TIERS_GB) {
+            if (rawTotalGb <= tier + 0.5) {
+                return tier;
+            }
+        }
+        return (int) Math.round(rawTotalGb);
     }
 }
