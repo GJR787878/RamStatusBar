@@ -24,7 +24,11 @@ public class MainHook implements IXposedHookLoadPackage {
     private static final String CLOCK_CLASS = "com.android.systemui.statusbar.policy.Clock";
     private static final String MODULE_PACKAGE = "com.example.ramstatusbar";
     private static final String PREFS_NAME = "config";
-    private static final String KEY_SHOW_TIME = "show_time";
+    private static final String KEY_DISPLAY_MODE = "display_mode";
+
+    private static final int MODE_TIME_ONLY = 0;
+    private static final int MODE_TIME_RAM = 1;
+    private static final int MODE_RAM_ONLY = 2;
 
     private static final int[] COMMON_RAM_TIERS_GB = {3, 4, 6, 8, 12, 16, 18, 24, 32};
 
@@ -85,26 +89,28 @@ public class MainHook implements IXposedHookLoadPackage {
             public void run() {
                 try {
                     getPrefs().reload();
-                    boolean showTime = getPrefs().getBoolean(KEY_SHOW_TIME, true);
+                    int mode = getPrefs().getInt(KEY_DISPLAY_MODE, MODE_TIME_RAM);
 
+                    String time = timeFormat.format(new Date());
                     String ram = getRamInfo(context);
+                    String full = time + " " + ram;
+                    int targetLen = full.length();
 
-                    if (showTime) {
-                        String time = timeFormat.format(new Date());
-                        String full = time + " " + ram;
-
-                        android.text.SpannableString spannable =
-                                new android.text.SpannableString(full);
-                        int ramStart = time.length() + 1;
-                        spannable.setSpan(
-                                new android.text.style.RelativeSizeSpan(0.65f),
-                                ramStart,
-                                full.length(),
-                                android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        clockView.setText(spannable);
-                    } else {
-                        clockView.setText(ram);
+                    String display;
+                    switch (mode) {
+                        case MODE_TIME_ONLY:
+                            display = padToLength(time, targetLen);
+                            break;
+                        case MODE_RAM_ONLY:
+                            display = padToLength(ram, targetLen);
+                            break;
+                        case MODE_TIME_RAM:
+                        default:
+                            display = full;
+                            break;
                     }
+
+                    clockView.setText(display);
                 } catch (Throwable t) {
                     XposedBridge.log(TAG + ": 更新文字出错: " + t);
                 }
@@ -120,6 +126,24 @@ public class MainHook implements IXposedHookLoadPackage {
         if (updater != null && mHandler != null) {
             mHandler.removeCallbacks(updater);
         }
+    }
+
+    private String padToLength(String content, int targetLength) {
+        int diff = targetLength - content.length();
+        if (diff <= 0) {
+            return content;
+        }
+        int left = diff / 2;
+        int right = diff - left;
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < left; i++) {
+            sb.append(' ');
+        }
+        sb.append(content);
+        for (int i = 0; i < right; i++) {
+            sb.append(' ');
+        }
+        return sb.toString();
     }
 
     private String getRamInfo(Context context) {
