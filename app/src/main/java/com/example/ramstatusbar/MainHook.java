@@ -21,8 +21,11 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 public class MainHook implements IXposedHookLoadPackage {
 
     private static final String TAG = "RamStatusBar";
-    private static final String TARGET_CLASS_NAME =
-            "com.android.systemui.shared.clocks.view.FlexClockTextView";
+    private static final String[] TARGET_CLASSES = new String[] {
+            "com.android.systemui.shared.clocks.view.FlexClockTextView",
+            "android.widget.TextClock",
+            "com.android.systemui.statusbar.policy.Clock",
+    };
 
     private Handler mHandler;
     private final Map<TextView, Runnable> mUpdaters = new HashMap<>();
@@ -49,7 +52,9 @@ public class MainHook implements IXposedHookLoadPackage {
                         protected void afterHookedMethod(MethodHookParam param) {
                             try {
                                 TextView tv = (TextView) param.thisObject;
-                                if (TARGET_CLASS_NAME.equals(tv.getClass().getName())) {
+                                String cls = tv.getClass().getName();
+                                if (isTargetClass(cls)) {
+                                    XposedBridge.log(TAG + ": 命中目标类 -> " + cls);
                                     startUpdating(tv);
                                 }
                             } catch (Throwable t) {
@@ -73,10 +78,19 @@ public class MainHook implements IXposedHookLoadPackage {
                         }
                     });
 
-            XposedBridge.log(TAG + ": hook 安装成功，目标类 -> " + TARGET_CLASS_NAME);
+            XposedBridge.log(TAG + ": hook 安装成功，白名单共 " + TARGET_CLASSES.length + " 个候选类");
         } catch (Throwable t) {
             XposedBridge.log(TAG + ": hook 安装失败: " + t);
         }
+    }
+
+    private boolean isTargetClass(String cls) {
+        for (String candidate : TARGET_CLASSES) {
+            if (candidate.equals(cls)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void startUpdating(final TextView clockView) {
@@ -99,7 +113,7 @@ public class MainHook implements IXposedHookLoadPackage {
             }
         };
         mUpdaters.put(clockView, updater);
-        XposedBridge.log(TAG + ": 已接管一个 FlexClockTextView 实例");
+        XposedBridge.log(TAG + ": 已接管一个时钟实例");
         getHandler().post(updater);
     }
 
