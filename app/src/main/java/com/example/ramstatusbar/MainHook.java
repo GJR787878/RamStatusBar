@@ -6,6 +6,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.widget.TextView;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -14,7 +17,6 @@ import java.util.Map;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
-import de.robv.android.xposed.XSharedPreferences;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
@@ -22,9 +24,7 @@ public class MainHook implements IXposedHookLoadPackage {
 
     private static final String TAG = "RamStatusBar";
     private static final String CLOCK_CLASS = "com.android.systemui.statusbar.policy.Clock";
-    private static final String MODULE_PACKAGE = "com.example.ramstatusbar";
-    private static final String PREFS_NAME = "config";
-    private static final String KEY_DISPLAY_MODE = "display_mode";
+    private static final String CONFIG_FILE = "/data/local/tmp/ramstatusbar_mode";
 
     private static final int MODE_TIME_ONLY = 0;
     private static final int MODE_TIME_RAM = 1;
@@ -32,23 +32,16 @@ public class MainHook implements IXposedHookLoadPackage {
 
     private static final int[] COMMON_RAM_TIERS_GB = {3, 4, 6, 8, 12, 16, 18, 24, 32};
 
+    private static final long UPDATE_INTERVAL_MS = 1000;
+
     private Handler mHandler;
     private final Map<TextView, Runnable> mUpdaters = new HashMap<>();
-    private XSharedPreferences mPrefs;
 
     private Handler getHandler() {
         if (mHandler == null) {
             mHandler = new Handler(Looper.getMainLooper());
         }
         return mHandler;
-    }
-
-    private XSharedPreferences getPrefs() {
-        if (mPrefs == null) {
-            mPrefs = new XSharedPreferences(MODULE_PACKAGE, PREFS_NAME);
-            mPrefs.makeWorldReadable();
-        }
-        return mPrefs;
     }
 
     @Override
@@ -88,8 +81,7 @@ public class MainHook implements IXposedHookLoadPackage {
             @Override
             public void run() {
                 try {
-                    getPrefs().reload();
-                    int mode = getPrefs().getInt(KEY_DISPLAY_MODE, MODE_TIME_RAM);
+                    int mode = readModeFromFile();
 
                     String time = timeFormat.format(new Date());
                     String ram = getRamInfo(context);
@@ -114,7 +106,7 @@ public class MainHook implements IXposedHookLoadPackage {
                 } catch (Throwable t) {
                     XposedBridge.log(TAG + ": 更新文字出错: " + t);
                 }
-                getHandler().postDelayed(this, 5000);
+                getHandler().postDelayed(this, UPDATE_INTERVAL_MS);
             }
         };
         mUpdaters.put(clockView, updater);
@@ -125,6 +117,24 @@ public class MainHook implements IXposedHookLoadPackage {
         Runnable updater = mUpdaters.remove(clockView);
         if (updater != null && mHandler != null) {
             mHandler.removeCallbacks(updater);
+        }
+    }
+
+    private int readModeFromFile() {
+        try {
+            File f = new File(CONFIG_FILE);
+            if (!f.exists()) {
+                return MODE_TIME_RAM;
+            }
+            BufferedReader br = new BufferedReader(new FileReader(f));
+            String line = br.readLine();
+            br.close();
+            if (line == null) {
+                return MODE_TIME_RAM;
+            }
+            return Integer.parseInt(line.trim());
+        } catch (Throwable t) {
+            return MODE_TIME_RAM;
         }
     }
 
