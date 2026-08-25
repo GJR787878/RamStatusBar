@@ -18,6 +18,7 @@ import java.util.Map;
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
+import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 public class MainHook implements IXposedHookLoadPackage {
@@ -35,7 +36,8 @@ public class MainHook implements IXposedHookLoadPackage {
     private static final long UPDATE_INTERVAL_MS = 1000;
 
     private Handler mHandler;
-    private final Map<TextView, Runnable> mUpdaters = new HashMap<>();
+    private final Map<TextView, SimpleDateFormat> mManaged = new HashMap<>();
+    private boolean mApplyingOurText = false;
 
     private Handler getHandler() {
         if (mHandler == null) {
@@ -58,66 +60,105 @@ public class MainHook implements IXposedHookLoadPackage {
                 protected void afterHookedMethod(MethodHookParam param) {
                     try {
                         TextView tv = (TextView) param.thisObject;
-                        startUpdating(tv);
+                        startManaging(tv);
                     } catch (Throwable t) {
                         XposedBridge.log(TAG + ": 构造后处理出错: " + t);
                     }
                 }
             });
 
-            XposedBridge.log(TAG + ": 构造函数hook 安装成功 -> " + CLOCK_CLASS);
+            XposedHelpers.findAndHookMethod(
+                    TextView.class,
+                    "setText",
+                    CharSequence.class,
+                    TextView.BufferType.class,
+                    new XC_MethodHook() {
+                        @Override
+                        protected void afterHookedMethod(MethodHookParam param) {
+                            try {
+                                if (mApplyingOurText) {
+                                    return;
+                                }
+                                TextView tv = (TextView) param.thisObject;
+                                if (mManaged.containsKey(tv)) {
+                                    applyDisplayNow(tv);
+                                }
+                            } catch (Throwable ignored) {
+                            }
+                        }
+                    });
+
+            XposedBridge.log(TAG + ": hook 安装成功 -> " + CLOCK_CLASS);
         } catch (Throwable t) {
             XposedBridge.log(TAG + ": hook 安装失败: " + t);
         }
     }
 
-    private void startUpdating(final TextView clockView) {
-        stopUpdating(clockView);
+    private void startManaging(final TextView clockView) {
+        mManaged.put(clockView, new SimpleDateFormat("HH:mm", Locale.getDefault()));
+        applyDisplayNow(clockView);
 
-        final Context context = clockView.getContext();
-        final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
-
-        Runnable updater = new Runnable() {
+        Runnable poller = new Runnable() {
             @Override
             public void run() {
-                try {
-                    int mode = readModeFromFile();
-
-                    String time = timeFormat.format(new Date());
-                    String ram = getRamInfo(context);
-                    String full = time + " " + ram;
-                    int targetLen = full.length();
-
-                    String display;
-                    switch (mode) {
-                        case MODE_TIME_ONLY:
-                            display = padToLength(time, targetLen);
-                            break;
-                        case MODE_RAM_ONLY:
-                            display = padToLength(ram, targetLen);
-                            break;
-                        case MODE_TIME_RAM:
-                        default:
-                            display = full;
-                            break;
-                    }
-
-                    clockView.setText(display);
-                } catch (Throwable t) {
-                    XposedBridge.log(TAG + ": 更新文字出错: " + t);
+                if (mManaged.containsKey(clockView)) {
+                    applyDisplayNow(clockView);
+                    getHandler().postDelayed(this, UPDATE_INTERVAL_MS);
                 }
-                getHandler().postDelayed(this, UPDATE_INTERVAL_MS);
             }
         };
-        mUpdaters.put(clockView, updater);
-        getHandler().post(updater);
+        getHandler().postDelayed(poller, UPDATE_INTERVAL_MS);
     }
 
-    private void stopUpdating(TextView clockView) {
-        Runnable updater = mUpdaters.remove(clockView);
-        if (updater != null && mHandler != null) {
-            mHandler.removeCallbacks(updater);
+    private void applyDisplayNow(TextView clockView) {
+        SimpleDateFormat timeFormat = mManaged.get(clockView);
+        if (timeFormat == null) {
+            return;
         }
+        try {
+            Context context = clockView.getContext();
+            int mode = readModeFromFile();
+
+            String time = timeFormat.format(new Date());
+            String ram = getRamInfo(context);
+            String full = time + " " + ram;
+            int targetLen = full.length();
+
+            String display;
+            switch (mode) {
+                case MODE_TIME_ONLY:
+                    display = padToLength(time, targetLen);
+                    break;
+                case MODE_RAM_ONLY:
+                    display = padToLength(ram, targetLen);
+                    break;
+                case MODE_TIME_RAM:
+                default:
+                    display = full;
+                    break;
+            }
+
+            mApplyingOurText = true;
+            try {
+                clockView.setText(display);
+            } finally {
+                mApplyingOurText = false;
+            }
+        } catch (Throwable t) {
+            XposedBridge.log(TAG + ": 更新文字出错: " + t);
+        }
+    }
+
+    private String padToLength(String content, int targetLength) {
+        int diff = targetLength - content.length();
+        if (diff <= 0) {
+            return content;
+        }
+        StringBuilder sb = new StringBuilder(content);
+        for (int i = 0; i < diff; i++) {
+            sb.append(' ');
+        }
+        return sb.toString();
     }
 
     private int readModeFromFile() {
@@ -136,24 +177,6 @@ public class MainHook implements IXposedHookLoadPackage {
         } catch (Throwable t) {
             return MODE_TIME_RAM;
         }
-    }
-
-    private String padToLength(String content, int targetLength) {
-        int diff = targetLength - content.length();
-        if (diff <= 0) {
-            return content;
-        }
-        int left = diff / 2;
-        int right = diff - left;
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < left; i++) {
-            sb.append(' ');
-        }
-        sb.append(content);
-        for (int i = 0; i < right; i++) {
-            sb.append(' ');
-        }
-        return sb.toString();
     }
 
     private String getRamInfo(Context context) {
@@ -176,4 +199,4 @@ public class MainHook implements IXposedHookLoadPackage {
         }
         return (int) Math.round(rawTotalGb);
     }
-}
+            }
