@@ -59,14 +59,15 @@ public class MainHook implements IXposedHookLoadPackage {
                     });
 
             XposedHelpers.findAndHookMethod(
-                    TextView.class,
+                    android.view.View.class,
                     "onDetachedFromWindow",
                     new XC_MethodHook() {
                         @Override
                         protected void afterHookedMethod(MethodHookParam param) {
                             try {
-                                TextView tv = (TextView) param.thisObject;
-                                stopUpdating(tv);
+                                if (param.thisObject instanceof TextView) {
+                                    stopUpdating((TextView) param.thisObject);
+                                }
                             } catch (Throwable t) {
                             }
                         }
@@ -98,6 +99,7 @@ public class MainHook implements IXposedHookLoadPackage {
             }
         };
         mUpdaters.put(clockView, updater);
+        XposedBridge.log(TAG + ": 已接管一个 FlexClockTextView 实例");
         getHandler().post(updater);
     }
 
