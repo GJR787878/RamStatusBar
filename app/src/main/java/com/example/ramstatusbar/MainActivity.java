@@ -48,7 +48,9 @@ public class MainActivity extends Activity {
         note.setPadding(0, 80, 0, 0);
         note.setText("提示：请到 LSPosed / Vector Manager 里，对本模块勾选作用域 "
                 + "com.android.systemui 并启用模块，首次安装完成后需要重启一次手机才会生效。\n\n"
-                + "开：13:31 2.5G/8G\n关：2.5G/8G");
+                + "开：时间 + 可用/总内存(如 13:31 2.5G/8G)\n"
+                + "关：只显示 可用/总内存(如 2.5G/8G)\n"
+                + "总内存会自动检测并取整到最接近的常见规格(8/12/16/24G等)。");
         root.addView(note);
 
         setContentView(root);
