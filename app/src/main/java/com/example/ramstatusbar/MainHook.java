@@ -156,7 +156,7 @@ public class MainHook implements IXposedHookLoadPackage {
         }
         StringBuilder sb = new StringBuilder(content);
         for (int i = 0; i < diff; i++) {
-            sb.append(' ');
+            sb.append('\u00A0');
         }
         return sb.toString();
     }
@@ -199,4 +199,4 @@ public class MainHook implements IXposedHookLoadPackage {
         }
         return (int) Math.round(rawTotalGb);
     }
-            }
+}
