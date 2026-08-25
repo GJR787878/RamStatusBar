@@ -122,15 +122,15 @@ public class MainHook implements IXposedHookLoadPackage {
             String time = timeFormat.format(new Date());
             String ram = getRamInfo(context);
             String full = time + " " + ram;
-            int targetLen = full.length();
+            float targetWidthPx = clockView.getPaint().measureText(full);
 
             String display;
             switch (mode) {
                 case MODE_TIME_ONLY:
-                    display = padToLength(time, targetLen);
+                    display = padToWidth(clockView, time, targetWidthPx);
                     break;
                 case MODE_RAM_ONLY:
-                    display = padToLength(ram, targetLen);
+                    display = padToWidth(clockView, ram, targetWidthPx);
                     break;
                 case MODE_TIME_RAM:
                 default:
@@ -149,13 +149,20 @@ public class MainHook implements IXposedHookLoadPackage {
         }
     }
 
-    private String padToLength(String content, int targetLength) {
-        int diff = targetLength - content.length();
-        if (diff <= 0) {
+    private String padToWidth(TextView view, String content, float targetWidthPx) {
+        android.graphics.Paint paint = view.getPaint();
+        float contentWidthPx = paint.measureText(content);
+        float diffPx = targetWidthPx - contentWidthPx;
+        if (diffPx <= 0) {
             return content;
         }
+        float nbspWidthPx = paint.measureText("\u00A0");
+        if (nbspWidthPx <= 0) {
+            return content;
+        }
+        int count = Math.round(diffPx / nbspWidthPx);
         StringBuilder sb = new StringBuilder(content);
-        for (int i = 0; i < diff; i++) {
+        for (int i = 0; i < count; i++) {
             sb.append('\u00A0');
         }
         return sb.toString();
@@ -199,4 +206,4 @@ public class MainHook implements IXposedHookLoadPackage {
         }
         return (int) Math.round(rawTotalGb);
     }
-}
+                }
