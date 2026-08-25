@@ -21,8 +21,15 @@ public class MainHook implements IXposedHookLoadPackage {
     private static final String TAG = "RamStatusBar";
     private static final String CLOCK_CLASS = "com.android.systemui.statusbar.policy.Clock";
 
-    private final Handler mHandler = new Handler(Looper.getMainLooper());
+    private Handler mHandler;
     private Runnable mUpdater;
+
+    private Handler getHandler() {
+        if (mHandler == null) {
+            mHandler = new Handler(Looper.getMainLooper());
+        }
+        return mHandler;
+    }
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
@@ -76,14 +83,14 @@ public class MainHook implements IXposedHookLoadPackage {
                 } catch (Throwable t) {
                     XposedBridge.log(TAG + ": 更新文字出错: " + t);
                 }
-                mHandler.postDelayed(this, 5000);
+                getHandler().postDelayed(this, 5000);
             }
         };
-        mHandler.post(mUpdater);
+        getHandler().post(mUpdater);
     }
 
     private void stopUpdating() {
-        if (mUpdater != null) {
+        if (mUpdater != null && mHandler != null) {
             mHandler.removeCallbacks(mUpdater);
             mUpdater = null;
         }
