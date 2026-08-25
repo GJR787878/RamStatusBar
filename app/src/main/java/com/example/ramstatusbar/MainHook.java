@@ -14,6 +14,7 @@ import java.util.Map;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XSharedPreferences;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
@@ -21,15 +22,29 @@ public class MainHook implements IXposedHookLoadPackage {
 
     private static final String TAG = "RamStatusBar";
     private static final String CLOCK_CLASS = "com.android.systemui.statusbar.policy.Clock";
+    private static final String MODULE_PACKAGE = "com.example.ramstatusbar";
+    private static final String PREFS_NAME = "config";
+    private static final String KEY_SHOW_TIME = "show_time";
+
+    private static final int DISPLAY_TOTAL_GB = 8;
 
     private Handler mHandler;
     private final Map<TextView, Runnable> mUpdaters = new HashMap<>();
+    private XSharedPreferences mPrefs;
 
     private Handler getHandler() {
         if (mHandler == null) {
             mHandler = new Handler(Looper.getMainLooper());
         }
         return mHandler;
+    }
+
+    private XSharedPreferences getPrefs() {
+        if (mPrefs == null) {
+            mPrefs = new XSharedPreferences(MODULE_PACKAGE, PREFS_NAME);
+            mPrefs.makeWorldReadable();
+        }
+        return mPrefs;
     }
 
     @Override
@@ -46,7 +61,6 @@ public class MainHook implements IXposedHookLoadPackage {
                 protected void afterHookedMethod(MethodHookParam param) {
                     try {
                         TextView tv = (TextView) param.thisObject;
-                        XposedBridge.log(TAG + ": 状态栏时钟实例已创建 -> " + tv);
                         startUpdating(tv);
                     } catch (Throwable t) {
                         XposedBridge.log(TAG + ": 构造后处理出错: " + t);
@@ -70,9 +84,27 @@ public class MainHook implements IXposedHookLoadPackage {
             @Override
             public void run() {
                 try {
-                    String time = timeFormat.format(new Date());
+                    getPrefs().reload();
+                    boolean showTime = getPrefs().getBoolean(KEY_SHOW_TIME, true);
+
                     String ram = getRamInfo(context);
-                    clockView.setText(time + "  " + ram);
+
+                    if (showTime) {
+                        String time = timeFormat.format(new Date());
+                        String full = time + " " + ram;
+
+                        android.text.SpannableString spannable =
+                                new android.text.SpannableString(full);
+                        int ramStart = time.length() + 1;
+                        spannable.setSpan(
+                                new android.text.style.RelativeSizeSpan(0.65f),
+                                ramStart,
+                                full.length(),
+                                android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        clockView.setText(spannable);
+                    } else {
+                        clockView.setText(ram);
+                    }
                 } catch (Throwable t) {
                     XposedBridge.log(TAG + ": 更新文字出错: " + t);
                 }
@@ -96,8 +128,7 @@ public class MainHook implements IXposedHookLoadPackage {
         am.getMemoryInfo(info);
 
         double availGb = info.availMem / 1024.0 / 1024.0 / 1024.0;
-        double totalGb = info.totalMem / 1024.0 / 1024.0 / 1024.0;
 
-        return String.format(Locale.getDefault(), "%.1fG/%.0fG", availGb, totalGb);
+        return String.format(Locale.getDefault(), "%.1fG/%dG", availGb, DISPLAY_TOTAL_GB);
     }
 }
