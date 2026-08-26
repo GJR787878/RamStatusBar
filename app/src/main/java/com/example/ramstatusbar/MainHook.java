@@ -4,6 +4,7 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.View;
 import android.widget.TextView;
 
 import java.io.BufferedReader;
@@ -31,13 +32,23 @@ public class MainHook implements IXposedHookLoadPackage {
     private static final int MODE_TIME_RAM = 1;
     private static final int MODE_RAM_ONLY = 2;
 
+    private static final int TAP_NORMAL = 0;
+    private static final int TAP_CPU = 1;
+    private static final int TAP_GPU = 2;
+    private static final long AUTO_REVERT_MS = 10000;
+
     private static final int[] COMMON_RAM_TIERS_GB = {3, 4, 6, 8, 12, 16, 18, 24, 32};
 
     private static final long UPDATE_INTERVAL_MS = 1000;
 
     private Handler mHandler;
     private final Map<TextView, SimpleDateFormat> mManaged = new HashMap<>();
+    private final Map<TextView, Integer> mTapState = new HashMap<>();
+    private final Map<TextView, Runnable> mRevertRunnables = new HashMap<>();
     private boolean mApplyingOurText = false;
+
+    private long mLastCpuIdle = -1;
+    private long mLastCpuTotal = -1;
 
     private Handler getHandler() {
         if (mHandler == null) {
@@ -96,6 +107,20 @@ public class MainHook implements IXposedHookLoadPackage {
 
     private void startManaging(final TextView clockView) {
         mManaged.put(clockView, new SimpleDateFormat("HH:mm", Locale.getDefault()));
+        mTapState.put(clockView, TAP_NORMAL);
+
+        clockView.setClickable(true);
+        clockView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Integer cur = mTapState.get(clockView);
+                int next = ((cur == null ? TAP_NORMAL : cur) + 1) % 3;
+                mTapState.put(clockView, next);
+                applyDisplayNow(clockView);
+                scheduleAutoRevert(clockView);
+            }
+        });
+
         applyDisplayNow(clockView);
 
         Runnable poller = new Runnable() {
@@ -110,6 +135,23 @@ public class MainHook implements IXposedHookLoadPackage {
         getHandler().postDelayed(poller, UPDATE_INTERVAL_MS);
     }
 
+    private void scheduleAutoRevert(final TextView clockView) {
+        Runnable prev = mRevertRunnables.remove(clockView);
+        if (prev != null) {
+            getHandler().removeCallbacks(prev);
+        }
+        Runnable revert = new Runnable() {
+            @Override
+            public void run() {
+                mTapState.put(clockView, TAP_NORMAL);
+                applyDisplayNow(clockView);
+                mRevertRunnables.remove(clockView);
+            }
+        };
+        mRevertRunnables.put(clockView, revert);
+        getHandler().postDelayed(revert, AUTO_REVERT_MS);
+    }
+
     private void applyDisplayNow(TextView clockView) {
         SimpleDateFormat timeFormat = mManaged.get(clockView);
         if (timeFormat == null) {
@@ -117,26 +159,35 @@ public class MainHook implements IXposedHookLoadPackage {
         }
         try {
             Context context = clockView.getContext();
-            int mode = readModeFromFile();
 
             String time = timeFormat.format(new Date());
             String ram = getRamInfo(context);
             String full = time + " " + ram;
             float targetWidthPx = clockView.getPaint().measureText(full);
 
-            String display;
-            switch (mode) {
-                case MODE_TIME_ONLY:
-                    display = padToWidth(clockView, time, targetWidthPx);
-                    break;
-                case MODE_RAM_ONLY:
-                    display = padToWidth(clockView, ram, targetWidthPx);
-                    break;
-                case MODE_TIME_RAM:
-                default:
-                    display = full;
-                    break;
+            Integer tapState = mTapState.get(clockView);
+            String rawContent;
+            if (tapState != null && tapState == TAP_CPU) {
+                rawContent = getCpuUsageString();
+            } else if (tapState != null && tapState == TAP_GPU) {
+                rawContent = getGpuUsageString();
+            } else {
+                int mode = readModeFromFile();
+                switch (mode) {
+                    case MODE_TIME_ONLY:
+                        rawContent = time;
+                        break;
+                    case MODE_RAM_ONLY:
+                        rawContent = ram;
+                        break;
+                    case MODE_TIME_RAM:
+                    default:
+                        rawContent = full;
+                        break;
+                }
             }
+
+            String display = padToWidth(clockView, rawContent, targetWidthPx);
 
             mApplyingOurText = true;
             try {
@@ -206,4 +257,108 @@ public class MainHook implements IXposedHookLoadPackage {
         }
         return (int) Math.round(rawTotalGb);
     }
-                }
+
+    private String getCpuUsageString() {
+        try {
+            BufferedReader br = new BufferedReader(new FileReader("/proc/stat"));
+            String line = br.readLine();
+            br.close();
+            if (line == null) {
+                return "CPU N/A";
+            }
+            String[] parts = line.trim().split("\\s+");
+            long user = Long.parseLong(parts[1]);
+            long nice = Long.parseLong(parts[2]);
+            long system = Long.parseLong(parts[3]);
+            long idle = Long.parseLong(parts[4]);
+            long iowait = parts.length > 5 ? Long.parseLong(parts[5]) : 0;
+            long irq = parts.length > 6 ? Long.parseLong(parts[6]) : 0;
+            long softirq = parts.length > 7 ? Long.parseLong(parts[7]) : 0;
+
+            long idleAll = idle + iowait;
+            long nonIdle = user + nice + system + irq + softirq;
+            long total = idleAll + nonIdle;
+
+            String result;
+            if (mLastCpuTotal < 0) {
+                result = "CPU --%";
+            } else {
+                long totalDelta = total - mLastCpuTotal;
+                long idleDelta = idleAll - mLastCpuIdle;
+                int percent = totalDelta > 0
+                        ? (int) Math.round((totalDelta - idleDelta) * 100.0 / totalDelta)
+                        : 0;
+                result = "CPU " + percent + "%";
+            }
+            mLastCpuIdle = idleAll;
+            mLastCpuTotal = total;
+            return result;
+        } catch (Throwable t) {
+            return "CPU N/A";
+        }
+    }
+
+    private String getGpuUsageString() {
+        Integer percent = tryReadPercentageFile("/sys/class/kgsl/kgsl-3d0/gpu_busy_percentage");
+        if (percent == null) {
+            percent = tryReadBusyRatioFile("/sys/class/kgsl/kgsl-3d0/gpubusy");
+        }
+        if (percent == null) {
+            percent = tryReadPercentageFile("/sys/class/misc/mali0/device/utilization");
+        }
+        if (percent == null) {
+            percent = tryReadPercentageFile("/sys/devices/platform/mali.0/utilization");
+        }
+        return percent != null ? ("GPU " + percent + "%") : "GPU N/A";
+    }
+
+    private Integer tryReadPercentageFile(String path) {
+        try {
+            File f = new File(path);
+            if (!f.exists()) {
+                return null;
+            }
+            BufferedReader br = new BufferedReader(new FileReader(f));
+            String line = br.readLine();
+            br.close();
+            if (line == null) {
+                return null;
+            }
+            String numeric = line.trim().replaceAll("[^0-9]", "");
+            if (numeric.isEmpty()) {
+                return null;
+            }
+            int value = Integer.parseInt(numeric);
+            return Math.min(value, 100);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    private Integer tryReadBusyRatioFile(String path) {
+        try {
+            File f = new File(path);
+            if (!f.exists()) {
+                return null;
+            }
+            BufferedReader br = new BufferedReader(new FileReader(f));
+            String line = br.readLine();
+            br.close();
+            if (line == null) {
+                return null;
+            }
+            String[] parts = line.trim().split("\\s+");
+            if (parts.length < 2) {
+                return null;
+            }
+            long busy = Long.parseLong(parts[0]);
+            long total = Long.parseLong(parts[1]);
+            if (total <= 0) {
+                return null;
+            }
+            return (int) Math.round(busy * 100.0 / total);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+}
