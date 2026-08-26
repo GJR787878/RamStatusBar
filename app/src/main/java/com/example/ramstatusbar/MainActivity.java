@@ -7,6 +7,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.FrameLayout;
@@ -50,7 +51,6 @@ public class MainActivity extends Activity {
         int currentMode = readCurrentModeOrDefault();
 
         FrameLayout frame = new FrameLayout(this);
-
         ScrollView scrollView = new ScrollView(this);
 
         LinearLayout content = new LinearLayout(this);
@@ -125,9 +125,17 @@ public class MainActivity extends Activity {
             }
         });
 
+        View divider = new View(this);
+        divider.setBackgroundColor(0x33FFFFFF);
+        LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 2);
+        dividerParams.topMargin = 64;
+        dividerParams.bottomMargin = 24;
+        content.addView(divider, dividerParams);
+
         TextView tapFeatureTitle = new TextView(this);
         tapFeatureTitle.setTextSize(15);
-        tapFeatureTitle.setPadding(0, 56, 0, 8);
+        tapFeatureTitle.setPadding(0, 32, 0, 8);
         tapFeatureTitle.setText(mEnglish ? "Tap the clock to check CPU / GPU" : "点击时钟查看 CPU / GPU");
         content.addView(tapFeatureTitle);
 
@@ -148,7 +156,7 @@ public class MainActivity extends Activity {
 
         TextView deepSleepTitle = new TextView(this);
         deepSleepTitle.setTextSize(15);
-        deepSleepTitle.setPadding(0, 56, 0, 8);
+        deepSleepTitle.setPadding(0, 96, 0, 8);
         deepSleepTitle.setText(mEnglish ? "Deep sleep" : "深度休眠");
         content.addView(deepSleepTitle);
 
@@ -169,7 +177,7 @@ public class MainActivity extends Activity {
 
         TextView setupTitle = new TextView(this);
         setupTitle.setTextSize(15);
-        setupTitle.setPadding(0, 56, 0, 8);
+        setupTitle.setPadding(0, 96, 0, 8);
         setupTitle.setText(mEnglish ? "Setup" : "安装说明");
         content.addView(setupTitle);
 
