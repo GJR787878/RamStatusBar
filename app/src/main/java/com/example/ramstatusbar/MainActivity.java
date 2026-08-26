@@ -6,6 +6,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.text.StaticLayout;
+import android.text.TextPaint;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -50,6 +52,9 @@ public class MainActivity extends Activity {
 
         int currentMode = readCurrentModeOrDefault();
 
+        int screenWidthPx = getResources().getDisplayMetrics().widthPixels;
+        final int contentWidthPx = screenWidthPx - 48 - 48;
+
         FrameLayout frame = new FrameLayout(this);
         ScrollView scrollView = new ScrollView(this);
 
@@ -65,10 +70,10 @@ public class MainActivity extends Activity {
         TextView intro = new TextView(this);
         intro.setTextSize(14);
         intro.setPadding(0, 24, 0, 32);
-        intro.setText(mEnglish
-                ? "Pick a display mode below. Changes take effect within 1 second, "
-                        + "no reboot needed."
-                : "选择下面的显示模式，最多等 1 秒即可生效，不需要重启手机。");
+        String introZh = "选择下面的显示模式，最多等 1 秒即可生效，不需要重启手机。";
+        String introEn = "Pick a display mode below. Changes take effect within 1 second, "
+                + "no reboot needed.";
+        setBilingualText(intro, introZh, introEn, contentWidthPx);
         content.addView(intro);
 
         final RadioGroup radioGroup = new RadioGroup(this);
@@ -141,17 +146,17 @@ public class MainActivity extends Activity {
 
         TextView tapFeatureBody = new TextView(this);
         tapFeatureBody.setTextSize(13);
-        tapFeatureBody.setText(mEnglish
-                ? "Tap the status bar clock: 1st tap shows CPU usage, 2nd tap shows "
-                        + "GPU usage, 3rd tap returns to normal. If left untouched for "
-                        + "10 seconds it automatically returns to normal as well.\n\n"
-                        + "GPU usage relies on chip-specific sysfs paths and may show "
-                        + "\"GPU N/A\" on some devices, depending on your chipset."
-                : "点击状态栏的时钟：第 1 次点击显示 CPU 占用率，第 2 次点击显示 "
-                        + "GPU 占用率，第 3 次点击回到正常显示；10 秒内不再点击也会"
-                        + "自动回到正常显示。\n\n"
-                        + "GPU 占用率依赖具体芯片的私有接口，部分设备上可能会显示"
-                        + "\"GPU N/A\"，能否读取取决于你的芯片型号。");
+        String tapZh = "点击状态栏的时钟：第 1 次点击显示 CPU 占用率，第 2 次点击显示 "
+                + "GPU 占用率，第 3 次点击回到正常显示；10 秒内不再点击也会"
+                + "自动回到正常显示。\n\n"
+                + "GPU 占用率依赖具体芯片的私有接口，部分设备上可能会显示"
+                + "\"GPU N/A\"，能否读取取决于你的芯片型号。";
+        String tapEn = "Tap the status bar clock: 1st tap shows CPU usage, 2nd tap shows "
+                + "GPU usage, 3rd tap returns to normal. If left untouched for "
+                + "10 seconds it automatically returns to normal as well.\n\n"
+                + "GPU usage relies on chip-specific sysfs paths and may show "
+                + "\"GPU N/A\" on some devices, depending on your chipset.";
+        setBilingualText(tapFeatureBody, tapZh, tapEn, contentWidthPx);
         content.addView(tapFeatureBody);
 
         TextView deepSleepTitle = new TextView(this);
@@ -162,12 +167,12 @@ public class MainActivity extends Activity {
 
         TextView deepSleepDesc = new TextView(this);
         deepSleepDesc.setTextSize(13);
-        deepSleepDesc.setText(mEnglish
-                ? "Shown below is how much of the time since boot the device has "
-                        + "spent in deep sleep, same figure as in About Phone \u2014 no "
-                        + "more need to dig through system settings to find it."
-                : "下面显示的是开机以来设备处于深度休眠状态的时长和占比，跟"
-                        + "\"关于本机\"里的数值一致，不用再去系统设置里翻找。");
+        String deepSleepZh = "下面显示的是开机以来设备处于深度休眠状态的时长和占比，跟"
+                + "\"关于本机\"里的数值一致，不用再去系统设置里翻找。";
+        String deepSleepEn = "Shown below is how much of the time since boot the device has "
+                + "spent in deep sleep, same figure as in About Phone \u2014 no "
+                + "more need to dig through system settings to find it.";
+        setBilingualText(deepSleepDesc, deepSleepZh, deepSleepEn, contentWidthPx);
         content.addView(deepSleepDesc);
 
         mDeepSleepText = new TextView(this);
@@ -269,6 +274,27 @@ public class MainActivity extends Activity {
         return String.format(Locale.getDefault(), "%d:%02d:%02d (%d%%)", hours, minutes, seconds, percent);
     }
 
+    private void setBilingualText(TextView view, String zhText, String enText, int widthPx) {
+        view.setText(mEnglish ? enText : zhText);
+        if (widthPx > 0) {
+            int linesZh = countLines(view, zhText, widthPx);
+            int linesEn = countLines(view, enText, widthPx);
+            view.setMinLines(Math.max(linesZh, linesEn));
+        }
+    }
+
+    private int countLines(TextView view, String text, int widthPx) {
+        try {
+            TextPaint paint = view.getPaint();
+            StaticLayout layout = StaticLayout.Builder
+                    .obtain(text, 0, text.length(), paint, widthPx)
+                    .build();
+            return layout.getLineCount();
+        } catch (Throwable t) {
+            return 1;
+        }
+    }
+
     private int readCurrentModeOrDefault() {
         try {
             java.io.File f = new java.io.File(CONFIG_FILE);
@@ -301,4 +327,4 @@ public class MainActivity extends Activity {
             return false;
         }
     }
-                }
+            }
