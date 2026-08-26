@@ -27,6 +27,7 @@ public class MainHook implements IXposedHookLoadPackage {
     private static final String TAG = "RamStatusBar";
     private static final String CLOCK_CLASS = "com.android.systemui.statusbar.policy.Clock";
     private static final String CONFIG_FILE = "/data/local/tmp/ramstatusbar_mode";
+    private static final String CPU_FILE = "/data/local/tmp/ramstatusbar_cpu";
 
     private static final int MODE_TIME_ONLY = 0;
     private static final int MODE_TIME_RAM = 1;
@@ -47,8 +48,8 @@ public class MainHook implements IXposedHookLoadPackage {
     private final Map<TextView, Runnable> mRevertRunnables = new HashMap<>();
     private boolean mApplyingOurText = false;
 
-    private long mLastCpuIdle = -1;
-    private long mLastCpuTotal = -1;
+    private Integer mLastCpuPercent = null;
+    private Integer mLastGpuPercent = null;
 
     private Handler getHandler() {
         if (mHandler == null) {
@@ -259,46 +260,46 @@ public class MainHook implements IXposedHookLoadPackage {
     }
 
     private String getCpuUsageString() {
+        Integer percent = tryReadCpuPercent();
+        if (percent != null) {
+            mLastCpuPercent = percent;
+        }
+        if (mLastCpuPercent == null) {
+            return "CPU N/A";
+        }
+        return "CPU " + mLastCpuPercent + "%";
+    }
+
+    private Integer tryReadCpuPercent() {
         try {
-            BufferedReader br = new BufferedReader(new FileReader("/proc/stat"));
+            File f = new File(CPU_FILE);
+            if (!f.exists()) {
+                return null;
+            }
+            BufferedReader br = new BufferedReader(new FileReader(f));
             String line = br.readLine();
             br.close();
             if (line == null) {
-                return "CPU N/A";
+                return null;
             }
-            String[] parts = line.trim().split("\\s+");
-            long user = Long.parseLong(parts[1]);
-            long nice = Long.parseLong(parts[2]);
-            long system = Long.parseLong(parts[3]);
-            long idle = Long.parseLong(parts[4]);
-            long iowait = parts.length > 5 ? Long.parseLong(parts[5]) : 0;
-            long irq = parts.length > 6 ? Long.parseLong(parts[6]) : 0;
-            long softirq = parts.length > 7 ? Long.parseLong(parts[7]) : 0;
-
-            long idleAll = idle + iowait;
-            long nonIdle = user + nice + system + irq + softirq;
-            long total = idleAll + nonIdle;
-
-            String result;
-            if (mLastCpuTotal < 0) {
-                result = "CPU --%";
-            } else {
-                long totalDelta = total - mLastCpuTotal;
-                long idleDelta = idleAll - mLastCpuIdle;
-                int percent = totalDelta > 0
-                        ? (int) Math.round((totalDelta - idleDelta) * 100.0 / totalDelta)
-                        : 0;
-                result = "CPU " + percent + "%";
-            }
-            mLastCpuIdle = idleAll;
-            mLastCpuTotal = total;
-            return result;
+            return Integer.parseInt(line.trim());
         } catch (Throwable t) {
-            return "CPU N/A";
+            return null;
         }
     }
 
     private String getGpuUsageString() {
+        Integer percent = tryReadGpuPercentRaw();
+        if (percent != null) {
+            mLastGpuPercent = percent;
+        }
+        if (mLastGpuPercent == null) {
+            return "GPU N/A";
+        }
+        return "GPU " + mLastGpuPercent + "%";
+    }
+
+    private Integer tryReadGpuPercentRaw() {
         Integer percent = tryReadPercentageFile("/sys/class/kgsl/kgsl-3d0/gpu_busy_percentage");
         if (percent == null) {
             percent = tryReadBusyRatioFile("/sys/class/kgsl/kgsl-3d0/gpubusy");
@@ -309,7 +310,7 @@ public class MainHook implements IXposedHookLoadPackage {
         if (percent == null) {
             percent = tryReadPercentageFile("/sys/devices/platform/mali.0/utilization");
         }
-        return percent != null ? ("GPU " + percent + "%") : "GPU N/A";
+        return percent;
     }
 
     private Integer tryReadPercentageFile(String path) {
@@ -361,4 +362,4 @@ public class MainHook implements IXposedHookLoadPackage {
             return null;
         }
     }
-}
+    }
