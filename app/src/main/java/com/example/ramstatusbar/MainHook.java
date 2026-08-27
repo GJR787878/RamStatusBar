@@ -56,6 +56,7 @@ public class MainHook implements IXposedHookLoadPackage {
     private Double mLastGpuTempC = null;
     private List<File> mCpuTempZones = null;
     private List<File> mGpuTempZones = null;
+    private final Map<TextView, Integer> mFixedWidthPx = new HashMap<>();
 
     private Handler getHandler() {
         if (mHandler == null) {
@@ -196,6 +197,10 @@ public class MainHook implements IXposedHookLoadPackage {
 
             String display = padToWidth(clockView, rawContent, targetWidthPx);
 
+            float rawContentWidthPx = clockView.getPaint().measureText(rawContent);
+            float neededWidthPx = Math.max(targetWidthPx, rawContentWidthPx);
+            ensureFixedWidth(clockView, neededWidthPx);
+
             mApplyingOurText = true;
             try {
                 clockView.setText(display);
@@ -204,6 +209,27 @@ public class MainHook implements IXposedHookLoadPackage {
             }
         } catch (Throwable t) {
             XposedBridge.log(TAG + ": 更新文字出错: " + t);
+        }
+    }
+
+    private void ensureFixedWidth(TextView clockView, float neededWidthPx) {
+        try {
+            float oneCharPx = clockView.getPaint().measureText("0");
+            int desired = Math.round(neededWidthPx + oneCharPx);
+
+            Integer current = mFixedWidthPx.get(clockView);
+            if (current != null && desired <= current) {
+                return;
+            }
+
+            mFixedWidthPx.put(clockView, desired);
+
+            android.view.ViewGroup.LayoutParams lp = clockView.getLayoutParams();
+            if (lp != null) {
+                lp.width = desired;
+                clockView.setLayoutParams(lp);
+            }
+        } catch (Throwable ignored) {
         }
     }
 
@@ -437,4 +463,4 @@ public class MainHook implements IXposedHookLoadPackage {
             return null;
         }
     }
-}
+                }
