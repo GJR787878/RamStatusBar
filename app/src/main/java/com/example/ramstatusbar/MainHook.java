@@ -281,7 +281,7 @@ public class MainHook implements IXposedHookLoadPackage {
         }
         String tempPart = mLastCpuTempC == null ? "" : (" " + Math.round(mLastCpuTempC) + "\u00b0C");
 
-        return "CPU " + percentPart + tempPart;
+        return "CPU" + percentPart + tempPart;
     }
 
     private Integer tryReadCpuPercent() {
@@ -318,7 +318,7 @@ public class MainHook implements IXposedHookLoadPackage {
         }
         String tempPart = mLastGpuTempC == null ? "" : (" " + Math.round(mLastGpuTempC) + "\u00b0C");
 
-        return "GPU " + percentPart + tempPart;
+        return "GPU" + percentPart + tempPart;
     }
 
     private List<File> discoverThermalZones(String namePrefix) {
@@ -437,4 +437,4 @@ public class MainHook implements IXposedHookLoadPackage {
             return null;
         }
     }
-                }
+}
