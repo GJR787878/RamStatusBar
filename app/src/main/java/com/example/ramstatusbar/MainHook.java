@@ -11,8 +11,10 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -50,6 +52,10 @@ public class MainHook implements IXposedHookLoadPackage {
 
     private Integer mLastCpuPercent = null;
     private Integer mLastGpuPercent = null;
+    private Double mLastCpuTempC = null;
+    private Double mLastGpuTempC = null;
+    private List<File> mCpuTempZones = null;
+    private List<File> mGpuTempZones = null;
 
     private Handler getHandler() {
         if (mHandler == null) {
@@ -264,10 +270,18 @@ public class MainHook implements IXposedHookLoadPackage {
         if (percent != null) {
             mLastCpuPercent = percent;
         }
-        if (mLastCpuPercent == null) {
-            return "CPU N/A";
+        String percentPart = mLastCpuPercent == null ? "N/A" : mLastCpuPercent + "%";
+
+        if (mCpuTempZones == null) {
+            mCpuTempZones = discoverThermalZones("cpuss-");
         }
-        return "CPU " + mLastCpuPercent + "%";
+        Double tempC = getMaxTempCelsius(mCpuTempZones);
+        if (tempC != null) {
+            mLastCpuTempC = tempC;
+        }
+        String tempPart = mLastCpuTempC == null ? "" : (" " + Math.round(mLastCpuTempC) + "\u00b0C");
+
+        return "CPU " + percentPart + tempPart;
     }
 
     private Integer tryReadCpuPercent() {
@@ -293,10 +307,71 @@ public class MainHook implements IXposedHookLoadPackage {
         if (percent != null) {
             mLastGpuPercent = percent;
         }
-        if (mLastGpuPercent == null) {
-            return "GPU N/A";
+        String percentPart = mLastGpuPercent == null ? "N/A" : mLastGpuPercent + "%";
+
+        if (mGpuTempZones == null) {
+            mGpuTempZones = discoverThermalZones("gpuss-");
         }
-        return "GPU " + mLastGpuPercent + "%";
+        Double tempC = getMaxTempCelsius(mGpuTempZones);
+        if (tempC != null) {
+            mLastGpuTempC = tempC;
+        }
+        String tempPart = mLastGpuTempC == null ? "" : (" " + Math.round(mLastGpuTempC) + "\u00b0C");
+
+        return "GPU " + percentPart + tempPart;
+    }
+
+    private List<File> discoverThermalZones(String namePrefix) {
+        List<File> result = new ArrayList<>();
+        try {
+            File thermalDir = new File("/sys/class/thermal");
+            File[] zones = thermalDir.listFiles();
+            if (zones == null) {
+                return result;
+            }
+            for (File zoneDir : zones) {
+                if (!zoneDir.getName().startsWith("thermal_zone")) {
+                    continue;
+                }
+                try {
+                    File typeFile = new File(zoneDir, "type");
+                    BufferedReader br = new BufferedReader(new FileReader(typeFile));
+                    String type = br.readLine();
+                    br.close();
+                    if (type == null) {
+                        continue;
+                    }
+                    String t = type.trim().toLowerCase(Locale.US);
+                    if (t.startsWith(namePrefix) && t.endsWith("-usr")) {
+                        result.add(new File(zoneDir, "temp"));
+                    }
+                } catch (Throwable ignored) {
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        return result;
+    }
+
+    private Double getMaxTempCelsius(List<File> tempFiles) {
+        Double max = null;
+        for (File f : tempFiles) {
+            try {
+                BufferedReader br = new BufferedReader(new FileReader(f));
+                String line = br.readLine();
+                br.close();
+                if (line == null) {
+                    continue;
+                }
+                int raw = Integer.parseInt(line.trim());
+                double celsius = raw / 1000.0;
+                if (max == null || celsius > max) {
+                    max = celsius;
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        return max;
     }
 
     private Integer tryReadGpuPercentRaw() {
@@ -362,4 +437,4 @@ public class MainHook implements IXposedHookLoadPackage {
             return null;
         }
     }
-    }
+                }
