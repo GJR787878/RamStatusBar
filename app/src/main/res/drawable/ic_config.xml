@@ -5,20 +5,8 @@
     android:viewportHeight="24">
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M3,17v2h6v-2H3zM3,5v2h10V5H3zM13,17v2h8v-2h-8zM17,11v2h4v-2h-4zM3,11v2h4v-2H3z" />
-    <circle
+        android:pathData="M3,6h18v1.5H3zM3,11.25h18v1.5H3zM3,16.5h18v1.5H3z" />
+    <path
         android:fillColor="#FFFFFF"
-        android:cx="7"
-        android:cy="12"
-        android:radius="2.5" />
-    <circle
-        android:fillColor="#FFFFFF"
-        android:cx="17"
-        android:cy="6"
-        android:radius="2.5" />
-    <circle
-        android:fillColor="#FFFFFF"
-        android:cx="17"
-        android:cy="18"
-        android:radius="2.5" />
+        android:pathData="M6.5,3.5h4v5h-4zM13.5,8.75h4v5h-4zM9.5,14h4v5h-4z" />
 </vector>
