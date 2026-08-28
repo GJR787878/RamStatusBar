@@ -2,100 +2,88 @@ package com.example.ramstatusbar;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 public class ColorSettingsActivity extends Activity {
 
-    private static final String UI_PREFS_NAME = "ui_prefs";
-    private static final String KEY_BG_COLOR = "background_color";
+    private static final String PREFS_NAME = "ui_prefs";
 
-    private static final int DEFAULT_BG_COLOR = 0xFFB8E6C1;
+    private static final String KEY_BG_COLOR =
+            "background_color";
+
+    private static final String KEY_LANGUAGE =
+            "language";
+
+    private static final String LANG_EN =
+            "en";
 
     private boolean mEnglish;
-    private SharedPreferences mPrefs;
-
-    private View mPreview;
-    private TextView mColorValue;
 
     private int mSelectedColor;
 
+    private TextView mPreview;
+
     private static final int[] COLORS = {
-            0xFFB8E6C1,
-            0xFFC8E6C9,
-            0xFFB2DFDB,
-            0xFFBBDEFB,
-            0xFFD1C4E9,
-            0xFFFFCCBC,
-            0xFFFFF59D,
-            0xFFF5F5F5,
-            0xFFCFD8DC
-    };
-
-    private static final String[] COLOR_NAMES_ZH = {
-            "浅绿色",
-            "淡绿色",
-            "浅青色",
-            "浅蓝色",
-            "浅紫色",
-            "浅橙色",
-            "浅黄色",
-            "浅灰色",
-            "蓝灰色"
-    };
-
-    private static final String[] COLOR_NAMES_EN = {
-            "Light green",
-            "Pale green",
-            "Light cyan",
-            "Light blue",
-            "Light purple",
-            "Light orange",
-            "Light yellow",
-            "Light gray",
-            "Blue gray"
+            0xFF000000,
+            0xFFFFFFFF,
+            0xFF202124,
+            0xFF3F51B5,
+            0xFF2196F3,
+            0xFF03A9F4,
+            0xFF00BCD4,
+            0xFF009688,
+            0xFF4CAF50,
+            0xFF8BC34A,
+            0xFFCDDC39,
+            0xFFFFEB3B,
+            0xFFFFC107,
+            0xFFFF9800,
+            0xFFFF5722,
+            0xFFF44336,
+            0xFFE91E63,
+            0xFF9C27B0,
+            0xFF673AB7
     };
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(
+            Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
 
-        mPrefs = getSharedPreferences(
-                UI_PREFS_NAME,
-                MODE_PRIVATE
-        );
+        android.content.SharedPreferences prefs =
+                getSharedPreferences(
+                        PREFS_NAME,
+                        MODE_PRIVATE
+                );
 
-        String language = mPrefs.getString(
-                "language",
-                "zh"
-        );
+        mEnglish =
+                LANG_EN.equals(
+                        prefs.getString(
+                                KEY_LANGUAGE,
+                                "zh"
+                        )
+                );
 
-        mEnglish = "en".equals(language);
-
-        mSelectedColor = mPrefs.getInt(
-                KEY_BG_COLOR,
-                DEFAULT_BG_COLOR
-        );
-
-        buildInterface();
-    }
-
-    private void buildInterface() {
+        mSelectedColor =
+                prefs.getInt(
+                        KEY_BG_COLOR,
+                        0xCC000000
+                );
 
         float density =
                 getResources()
                         .getDisplayMetrics()
                         .density;
-
-        ScrollView scrollView =
-                new ScrollView(this);
 
         LinearLayout root =
                 new LinearLayout(this);
@@ -105,10 +93,10 @@ public class ColorSettingsActivity extends Activity {
         );
 
         root.setPadding(
-                Math.round(32 * density),
+                Math.round(24 * density),
                 Math.round(48 * density),
-                Math.round(32 * density),
-                Math.round(48 * density)
+                Math.round(24 * density),
+                Math.round(32 * density)
         );
 
         TextView title =
@@ -118,17 +106,15 @@ public class ColorSettingsActivity extends Activity {
 
         title.setText(
                 mEnglish
-                        ? "Background color"
+                        ? "Background Color"
                         : "背景颜色"
         );
 
         root.addView(
                 title,
-                createParams(
-                        0,
-                        0,
-                        0,
-                        24
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
                 )
         );
 
@@ -137,27 +123,28 @@ public class ColorSettingsActivity extends Activity {
 
         description.setTextSize(14);
 
+        description.setPadding(
+                0,
+                Math.round(16 * density),
+                0,
+                Math.round(24 * density)
+        );
+
         description.setText(
                 mEnglish
-                        ? "Choose a preset color for the capsule "
-                        + "behind the status bar text."
-                        : "选择状态栏文字后面的胶囊背景颜色。"
+                        ? "Choose a background color for the "
+                        + "status bar capsule."
+                        : "选择状态栏胶囊背景颜色。"
         );
 
         root.addView(
-                description,
-                createParams(
-                        0,
-                        0,
-                        0,
-                        32
-                )
+                description
         );
 
         TextView previewTitle =
                 new TextView(this);
 
-        previewTitle.setTextSize(15);
+        previewTitle.setTextSize(14);
 
         previewTitle.setText(
                 mEnglish
@@ -166,52 +153,60 @@ public class ColorSettingsActivity extends Activity {
         );
 
         root.addView(
-                previewTitle,
-                createParams(
-                        0,
-                        0,
-                        0,
-                        12
-                )
+                previewTitle
         );
 
-        mPreview = new View(this);
+        mPreview =
+                new TextView(this);
 
-        updatePreview();
+        mPreview.setTextSize(16);
+
+        mPreview.setTextColor(
+                getPreviewTextColor()
+        );
+
+        mPreview.setGravity(
+                Gravity.CENTER
+        );
+
+        mPreview.setText(
+                mEnglish
+                        ? "21:11 2.5G/8G"
+                        : "21:11 2.5G/8G"
+        );
 
         LinearLayout.LayoutParams previewParams =
                 new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT,
                         Math.round(56 * density)
                 );
 
-        previewParams.bottomMargin =
+        previewParams.topMargin =
                 Math.round(12 * density);
+
+        previewParams.bottomMargin =
+                Math.round(32 * density);
 
         root.addView(
                 mPreview,
                 previewParams
         );
 
-        mColorValue =
+        updatePreview();
+
+        TextView colorTitle =
                 new TextView(this);
 
-        mColorValue.setTextSize(13);
+        colorTitle.setTextSize(14);
 
-        mColorValue.setGravity(
-                Gravity.CENTER
+        colorTitle.setText(
+                mEnglish
+                        ? "Colors"
+                        : "颜色"
         );
 
-        updateColorText();
-
         root.addView(
-                mColorValue,
-                createParams(
-                        0,
-                        0,
-                        0,
-                        32
-                )
+                colorTitle
         );
 
         LinearLayout colorGrid =
@@ -221,53 +216,166 @@ public class ColorSettingsActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
-        for (int row = 0; row < 3; row++) {
+        int columnCount = 4;
 
-            LinearLayout rowLayout =
-                    new LinearLayout(this);
+        LinearLayout currentRow = null;
 
-            rowLayout.setOrientation(
-                    LinearLayout.HORIZONTAL
-            );
+        for (int i = 0; i < COLORS.length; i++) {
 
-            rowLayout.setGravity(
-                    Gravity.CENTER
-            );
+            if (i % columnCount == 0) {
 
-            for (int col = 0; col < 3; col++) {
+                currentRow =
+                        new LinearLayout(this);
 
-                final int index =
-                        row * 3 + col;
+                currentRow.setOrientation(
+                        LinearLayout.HORIZONTAL
+                );
 
-                Button colorButton =
-                        createColorButton(
-                                index,
-                                density
-                        );
-
-                rowLayout.addView(
-                        colorButton
+                colorGrid.addView(
+                        currentRow,
+                        new LinearLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                Math.round(64 * density)
+                        )
                 );
             }
 
-            LinearLayout.LayoutParams rowParams =
+            final int color =
+                    COLORS[i];
+
+            Button colorButton =
+                    new Button(this);
+
+            colorButton.setText("");
+
+            colorButton.setPadding(
+                    0,
+                    0,
+                    0,
+                    0
+            );
+
+            GradientDrawable colorDrawable =
+                    new GradientDrawable();
+
+            colorDrawable.setShape(
+                    GradientDrawable.OVAL
+            );
+
+            colorDrawable.setColor(
+                    color
+            );
+
+            colorDrawable.setStroke(
+                    Math.round(1 * density),
+                    0x55000000
+            );
+
+            colorButton.setBackground(
+                    colorDrawable
+            );
+
+            colorButton.setOnClickListener(
+                    new View.OnClickListener() {
+
+                        @Override
+                        public void onClick(
+                                View v) {
+
+                            mSelectedColor =
+                                    color;
+
+                            saveColor();
+
+                            updatePreview();
+
+                            Toast.makeText(
+                                    ColorSettingsActivity.this,
+                                    mEnglish
+                                            ? "Color saved"
+                                            : "颜色已保存",
+                                    Toast.LENGTH_SHORT
+                            ).show();
+                        }
+                    }
+            );
+
+            LinearLayout.LayoutParams buttonParams =
                     new LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.MATCH_PARENT,
-                            Math.round(58 * density)
+                            0,
+                            Math.round(48 * density),
+                            1
                     );
 
-            if (row > 0) {
-                rowParams.topMargin =
-                        Math.round(8 * density);
-            }
+            buttonParams.setMargins(
+                    Math.round(6 * density),
+                    Math.round(6 * density),
+                    Math.round(6 * density),
+                    Math.round(6 * density)
+            );
 
-            colorGrid.addView(
-                    rowLayout,
-                    rowParams
+            currentRow.addView(
+                    colorButton,
+                    buttonParams
             );
         }
 
-        root.addView(colorGrid);
+        root.addView(
+                colorGrid,
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+        );
+
+        Button transparentButton =
+                new Button(this);
+
+        transparentButton.setText(
+                mEnglish
+                        ? "Transparent"
+                        : "透明"
+        );
+
+        transparentButton.setAllCaps(false);
+
+        transparentButton.setOnClickListener(
+                new View.OnClickListener() {
+
+                    @Override
+                    public void onClick(View v) {
+
+                        mSelectedColor =
+                                Color.TRANSPARENT;
+
+                        saveColor();
+
+                        updatePreview();
+
+                        Toast.makeText(
+                                ColorSettingsActivity.this,
+                                mEnglish
+                                        ? "Transparent background saved"
+                                        : "已设置为透明背景",
+                                Toast.LENGTH_SHORT
+                        ).show();
+                    }
+                }
+        );
+
+        LinearLayout.LayoutParams transparentParams =
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+
+        transparentParams.topMargin =
+                Math.round(24 * density);
+
+        root.addView(
+                transparentButton,
+                transparentParams
+        );
 
         Button backButton =
                 new Button(this);
@@ -278,11 +386,14 @@ public class ColorSettingsActivity extends Activity {
                         : "返回"
         );
 
+        backButton.setAllCaps(false);
+
         backButton.setOnClickListener(
                 new View.OnClickListener() {
 
                     @Override
                     public void onClick(View v) {
+
                         finish();
                     }
                 }
@@ -290,115 +401,28 @@ public class ColorSettingsActivity extends Activity {
 
         LinearLayout.LayoutParams backParams =
                 new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
                 );
 
         backParams.topMargin =
-                Math.round(40 * density);
+                Math.round(12 * density);
 
         root.addView(
                 backButton,
                 backParams
         );
 
-        scrollView.addView(
-                root,
-                new ScrollView.LayoutParams(
-                        ScrollView.LayoutParams.MATCH_PARENT,
-                        ScrollView.LayoutParams.WRAP_CONTENT
-                )
-        );
-
-        setContentView(scrollView);
-    }
-
-    private Button createColorButton(
-            final int index,
-            float density) {
-
-        Button button =
-                new Button(this);
-
-        button.setText(
-                mEnglish
-                        ? COLOR_NAMES_EN[index]
-                        : COLOR_NAMES_ZH[index]
-        );
-
-        button.setTextSize(11);
-
-        button.setAllCaps(false);
-
-        GradientDrawable background =
-                new GradientDrawable();
-
-        background.setColor(
-                COLORS[index]
-        );
-
-        background.setCornerRadius(
-                1000.0f
-        );
-
-        background.setStroke(
-                Math.round(1 * density),
-                0x55000000
-        );
-
-        button.setBackground(background);
-
-        LinearLayout.LayoutParams params =
-                new LinearLayout.LayoutParams(
-                        0,
-                        Math.round(52 * density),
-                        1.0f
-                );
-
-        if (index % 3 != 0) {
-            params.leftMargin =
-                    Math.round(4 * density);
-        }
-
-        if (index % 3 != 2) {
-            params.rightMargin =
-                    Math.round(4 * density);
-        }
-
-        button.setLayoutParams(params);
-
-        button.setOnClickListener(
-                new View.OnClickListener() {
-
-                    @Override
-                    public void onClick(View v) {
-
-                        mSelectedColor =
-                                COLORS[index];
-
-                        saveColor();
-
-                        updatePreview();
-
-                        updateColorText();
-
-                        Toast.makeText(
-                                ColorSettingsActivity.this,
-                                mEnglish
-                                        ? "Color applied"
-                                        : "颜色已应用",
-                                Toast.LENGTH_SHORT
-                        ).show();
-                    }
-                }
-        );
-
-        return button;
+        setContentView(root);
     }
 
     private void saveColor() {
 
-        mPrefs.edit()
+        getSharedPreferences(
+                PREFS_NAME,
+                MODE_PRIVATE
+        )
+                .edit()
                 .putInt(
                         KEY_BG_COLOR,
                         mSelectedColor
@@ -415,65 +439,50 @@ public class ColorSettingsActivity extends Activity {
         GradientDrawable drawable =
                 new GradientDrawable();
 
+        drawable.setShape(
+                GradientDrawable.RECTANGLE
+        );
+
         drawable.setColor(
                 mSelectedColor
         );
 
         drawable.setCornerRadius(
-                1000.0f
+                1000
         );
 
         mPreview.setBackground(
                 drawable
         );
-    }
 
-    private void updateColorText() {
-
-        if (mColorValue == null) {
-            return;
-        }
-
-        String hex =
-                String.format(
-                        "#%08X",
-                        mSelectedColor
-                );
-
-        mColorValue.setText(
-                mEnglish
-                        ? "Current color: " + hex
-                        : "当前颜色：" + hex
+        mPreview.setTextColor(
+                getPreviewTextColor()
         );
     }
 
-    private LinearLayout.LayoutParams createParams(
-            int width,
-            int height,
-            int left,
-            int bottom) {
+    private int getPreviewTextColor() {
 
-        LinearLayout.LayoutParams params =
-                new LinearLayout.LayoutParams(
-                        width == 0
-                                ? LinearLayout.LayoutParams.MATCH_PARENT
-                                : width,
-                        height == 0
-                                ? LinearLayout.LayoutParams.WRAP_CONTENT
-                                : height
-                );
+        if (mSelectedColor == Color.TRANSPARENT) {
+            return Color.BLACK;
+        }
 
-        float density =
-                getResources()
-                        .getDisplayMetrics()
-                        .density;
+        int red =
+                Color.red(mSelectedColor);
 
-        params.leftMargin =
-                Math.round(left * density);
+        int green =
+                Color.green(mSelectedColor);
 
-        params.bottomMargin =
-                Math.round(bottom * density);
+        int blue =
+                Color.blue(mSelectedColor);
 
-        return params;
+        int brightness =
+                (red * 299
+                        + green * 587
+                        + blue * 114)
+                        / 1000;
+
+        return brightness < 150
+                ? Color.WHITE
+                : Color.BLACK;
     }
 }
