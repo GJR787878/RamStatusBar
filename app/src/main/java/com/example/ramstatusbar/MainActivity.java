@@ -1,19 +1,13 @@
 package com.example.ramstatusbar;
 
 import android.app.Activity;
-import android.app.ActivityManager;
 import android.content.SharedPreferences;
 import android.graphics.Color;
-import android.graphics.LinearGradient;
-import android.graphics.Paint;
-import android.graphics.Shader;
-import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.view.Gravity;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -22,7 +16,6 @@ import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.ScrollView;
-import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -44,14 +37,23 @@ public class MainActivity extends Activity {
     private static final int MODE_TIME_RAM = 1;
     private static final int MODE_RAM_ONLY = 2;
 
-    private static final String UI_PREFS_NAME = "ui_prefs";
-    private static final String KEY_LANGUAGE = "language";
-    private static final String LANG_ZH = "zh";
-    private static final String LANG_EN = "en";
+    private static final String UI_PREFS_NAME =
+            "ui_prefs";
 
-    private static final int DEFAULT_COLOR = 0x80000000;
+    private static final String KEY_LANGUAGE =
+            "language";
 
-    private static final int LANG_BUTTON_WIDTH_DP = 72;
+    private static final String LANG_ZH =
+            "zh";
+
+    private static final String LANG_EN =
+            "en";
+
+    private static final int DEFAULT_BACKGROUND_COLOR =
+            0x66000000;
+
+    private static final int LANG_BUTTON_WIDTH_DP =
+            72;
 
     private boolean mEnglish;
 
@@ -83,6 +85,11 @@ public class MainActivity extends Activity {
         showMainPage();
     }
 
+    /*
+     * ============================
+     * 主页面
+     * ============================
+     */
     private void showMainPage() {
 
         int currentMode =
@@ -113,7 +120,7 @@ public class MainActivity extends Activity {
                 48,
                 96,
                 48,
-                220
+                180
         );
 
         TextView title =
@@ -141,11 +148,18 @@ public class MainActivity extends Activity {
                 32
         );
 
+        String introZh =
+                "选择下面的显示模式，最多等 1 秒即可生效，"
+                        + "不需要重启手机。";
+
+        String introEn =
+                "Pick a display mode below. Changes take "
+                        + "effect within 1 second, no reboot needed.";
+
         setBilingualText(
                 intro,
-                "选择下面的显示模式，最多等 1 秒即可生效，不需要重启手机。",
-                "Pick a display mode below. Changes take effect within 1 second, "
-                        + "no reboot needed.",
+                introZh,
+                introEn,
                 contentWidthPx
         );
 
@@ -191,11 +205,21 @@ public class MainActivity extends Activity {
                         : "仅显示内存 (如 2.5G/8G)"
         );
 
-        radioGroup.addView(rbTimeOnly);
-        radioGroup.addView(rbTimeRam);
-        radioGroup.addView(rbRamOnly);
+        radioGroup.addView(
+                rbTimeOnly
+        );
 
-        content.addView(radioGroup);
+        radioGroup.addView(
+                rbTimeRam
+        );
+
+        radioGroup.addView(
+                rbRamOnly
+        );
+
+        content.addView(
+                radioGroup
+        );
 
         if (currentMode == MODE_TIME_ONLY) {
 
@@ -245,7 +269,9 @@ public class MainActivity extends Activity {
                         }
 
                         boolean ok =
-                                writeModeToFile(mode);
+                                writeModeToFile(
+                                        mode
+                                );
 
                         if (!ok) {
 
@@ -274,8 +300,11 @@ public class MainActivity extends Activity {
                         2
                 );
 
-        dividerParams.topMargin = 64;
-        dividerParams.bottomMargin = 24;
+        dividerParams.topMargin =
+                64;
+
+        dividerParams.bottomMargin =
+                24;
 
         content.addView(
                 divider,
@@ -309,18 +338,26 @@ public class MainActivity extends Activity {
 
         tapFeatureBody.setTextSize(13);
 
+        String tapZh =
+                "点击状态栏的时钟：第 1 次点击显示 CPU "
+                        + "占用率，第 2 次点击显示 GPU 占用率，"
+                        + "第 3 次点击回到正常显示；10 秒内不再点击"
+                        + "也会自动回到正常显示。\n\n"
+                        + "GPU 占用率依赖具体芯片的私有接口，部分设备上"
+                        + "可能会显示 \"GPU N/A\"。";
+
+        String tapEn =
+                "Tap the status bar clock: 1st tap shows CPU "
+                        + "usage, 2nd tap shows GPU usage, 3rd tap "
+                        + "returns to normal. If left untouched for "
+                        + "10 seconds it automatically returns to normal.\n\n"
+                        + "GPU usage relies on chip-specific sysfs "
+                        + "paths and may show \"GPU N/A\" on some devices.";
+
         setBilingualText(
                 tapFeatureBody,
-                "点击状态栏的时钟：第 1 次点击显示 CPU 占用率，第 2 次点击显示 "
-                        + "GPU 占用率，第 3 次点击回到正常显示；10 秒内不再点击也会"
-                        + "自动回到正常显示。\n\n"
-                        + "GPU 占用率依赖具体芯片的私有接口，部分设备上可能会显示"
-                        + "\"GPU N/A\"，能否读取取决于你的芯片型号。",
-                "Tap the status bar clock: 1st tap shows CPU usage, 2nd tap shows "
-                        + "GPU usage, 3rd tap returns to normal. If left untouched for "
-                        + "10 seconds it automatically returns to normal as well.\n\n"
-                        + "GPU usage relies on chip-specific sysfs paths and may show "
-                        + "\"GPU N/A\" on some devices, depending on your chipset.",
+                tapZh,
+                tapEn,
                 contentWidthPx
         );
 
@@ -355,12 +392,18 @@ public class MainActivity extends Activity {
 
         deepSleepDesc.setTextSize(13);
 
+        String deepSleepZh =
+                "下面显示的是开机以来设备处于深度休眠状态的"
+                        + "时长和占比，跟\"关于本机\"里的数值一致。";
+
+        String deepSleepEn =
+                "Shown below is how much of the time since boot "
+                        + "the device has spent in deep sleep.";
+
         setBilingualText(
                 deepSleepDesc,
-                "下面显示的是开机以来设备处于深度休眠状态的时长和占比，跟"
-                        + "\"关于本机\"里的数值一致，不用再去系统设置里翻找。",
-                "Shown below is how much of the time since boot the device has "
-                        + "spent in deep sleep, same figure as in About Phone.",
+                deepSleepZh,
+                deepSleepEn,
                 contentWidthPx
         );
 
@@ -371,7 +414,9 @@ public class MainActivity extends Activity {
         mDeepSleepText =
                 new TextView(this);
 
-        mDeepSleepText.setTextSize(14);
+        mDeepSleepText.setTextSize(
+                14
+        );
 
         mDeepSleepText.setPadding(
                 0,
@@ -387,7 +432,9 @@ public class MainActivity extends Activity {
         TextView setupTitle =
                 new TextView(this);
 
-        setupTitle.setTextSize(15);
+        setupTitle.setTextSize(
+                15
+        );
 
         setupTitle.setPadding(
                 0,
@@ -409,21 +456,23 @@ public class MainActivity extends Activity {
         TextView setupBody =
                 new TextView(this);
 
-        setupBody.setTextSize(13);
+        setupBody.setTextSize(
+                13
+        );
 
         setupBody.setText(
                 mEnglish
-                        ? "1. In LSPosed / Vector Manager, enable this module and "
-                                + "check the scope com.android.systemui.\n"
-                                + "2. Reboot once after the first install for it to take effect.\n"
-                                + "3. Switching the display mode above requires root; a "
-                                + "permission prompt will appear the first time.\n"
-                                + "4. Total RAM is auto-detected and rounded to a common spec."
-                        : "1. 到 LSPosed / Vector Manager 里，对本模块勾选作用域 "
-                                + "com.android.systemui 并启用模块。\n"
-                                + "2. 首次安装完成后需要重启一次手机才会生效。\n"
-                                + "3. 切换上面的显示模式需要 root 权限，首次切换会弹出授权请求。\n"
-                                + "4. 总内存会自动检测并取整到最接近的常见规格。"
+                        ? "1. In LSPosed / Vector Manager, enable this "
+                        + "module and check the scope com.android.systemui.\n"
+                        + "2. Reboot once after the first install.\n"
+                        + "3. Switching display mode and background "
+                        + "color requires root permission.\n"
+                        + "4. Total RAM is auto-detected."
+                        : "1. 到 LSPosed / Vector Manager 里，对本模块"
+                        + "勾选作用域 com.android.systemui 并启用模块。\n"
+                        + "2. 首次安装完成后需要重启一次手机。\n"
+                        + "3. 切换显示模式和背景颜色需要 root 权限。\n"
+                        + "4. 总内存会自动检测。"
         );
 
         content.addView(
@@ -446,15 +495,22 @@ public class MainActivity extends Activity {
                 )
         );
 
-        LinearLayout bottomButtons =
+        /*
+         * 底部按钮区域：
+         *
+         * [ 背景颜色 ] [ 中英文 ]
+         *
+         * 两个按钮放在同一行。
+         */
+        LinearLayout bottomBar =
                 new LinearLayout(this);
 
-        bottomButtons.setOrientation(
+        bottomBar.setOrientation(
                 LinearLayout.HORIZONTAL
         );
 
-        bottomButtons.setGravity(
-                Gravity.CENTER_VERTICAL
+        bottomBar.setGravity(
+                Gravity.CENTER
         );
 
         Button colorButton =
@@ -462,8 +518,8 @@ public class MainActivity extends Activity {
 
         colorButton.setText(
                 mEnglish
-                        ? "Background color"
-                        : "自定义背景颜色"
+                        ? "Background"
+                        : "背景颜色"
         );
 
         colorButton.setOnClickListener(
@@ -519,27 +575,47 @@ public class MainActivity extends Activity {
                         .getDisplayMetrics()
                         .density;
 
-        int langWidth =
+        int buttonWidth =
                 Math.round(
-                        LANG_BUTTON_WIDTH_DP
-                                * density
+                        LANG_BUTTON_WIDTH_DP *
+                                density
                 );
 
-        bottomButtons.addView(
-                colorButton,
+        LinearLayout.LayoutParams colorParams =
                 new LinearLayout.LayoutParams(
                         0,
                         ViewGroup.LayoutParams.WRAP_CONTENT,
-                        1
-                )
+                        1f
+                );
+
+        colorParams.setMargins(
+                24,
+                0,
+                12,
+                24
         );
 
-        bottomButtons.addView(
-                langButton,
+        LinearLayout.LayoutParams langParams =
                 new LinearLayout.LayoutParams(
-                        langWidth,
+                        buttonWidth,
                         ViewGroup.LayoutParams.WRAP_CONTENT
-                )
+                );
+
+        langParams.setMargins(
+                12,
+                0,
+                24,
+                24
+        );
+
+        bottomBar.addView(
+                colorButton,
+                colorParams
+        );
+
+        bottomBar.addView(
+                langButton,
+                langParams
         );
 
         FrameLayout.LayoutParams bottomParams =
@@ -551,57 +627,47 @@ public class MainActivity extends Activity {
         bottomParams.gravity =
                 Gravity.BOTTOM;
 
-        bottomParams.setMargins(
-                32,
-                0,
-                32,
-                32
-        );
-
         frame.addView(
-                bottomButtons,
+                bottomBar,
                 bottomParams
         );
 
         setContentView(frame);
     }
 
+    /*
+     * ============================
+     * 二级颜色选择页面
+     * ============================
+     */
     private void showColorPage() {
 
-        final int savedColor =
-                readColorFromFile();
+        FrameLayout frame =
+                new FrameLayout(this);
 
-        final float[] hsv =
-                new float[3];
-
-        Color.colorToHSV(
-                savedColor,
-                hsv
-        );
-
-        final int[] alpha =
-                new int[]{
-                        Color.alpha(savedColor)
-                };
-
-        LinearLayout root =
+        LinearLayout content =
                 new LinearLayout(this);
 
-        root.setOrientation(
+        content.setOrientation(
                 LinearLayout.VERTICAL
         );
 
-        root.setPadding(
-                40,
+        content.setPadding(
                 48,
-                40,
-                40
+                80,
+                48,
+                48
         );
+
+        ScrollView scrollView =
+                new ScrollView(this);
 
         TextView title =
                 new TextView(this);
 
-        title.setTextSize(20);
+        title.setTextSize(
+                20
+        );
 
         title.setText(
                 mEnglish
@@ -609,18 +675,146 @@ public class MainActivity extends Activity {
                         : "背景颜色"
         );
 
-        root.addView(title);
-
-        Button back =
-                new Button(this);
-
-        back.setText(
-                mEnglish
-                        ? "← Back"
-                        : "← 返回"
+        content.addView(
+                title
         );
 
-        back.setOnClickListener(
+        TextView description =
+                new TextView(this);
+
+        description.setTextSize(
+                14
+        );
+
+        description.setPadding(
+                0,
+                24,
+                0,
+                32
+        );
+
+        description.setText(
+                mEnglish
+                        ? "Choose a preset color for the status bar capsule."
+                        : "选择状态栏胶囊背景颜色。"
+        );
+
+        content.addView(
+                description
+        );
+
+        /*
+         * 预设颜色。
+         */
+        addColorButton(
+                content,
+                mEnglish ? "Transparent" : "透明",
+                Color.TRANSPARENT
+        );
+
+        addColorButton(
+                content,
+                mEnglish ? "Black" : "黑色",
+                0x99000000
+        );
+
+        addColorButton(
+                content,
+                mEnglish ? "Dark Gray" : "深灰色",
+                0x99606060
+        );
+
+        addColorButton(
+                content,
+                mEnglish ? "White" : "白色",
+                0x99FFFFFF
+        );
+
+        addColorButton(
+                content,
+                mEnglish ? "Red" : "红色",
+                0x99F44336
+        );
+
+        addColorButton(
+                content,
+                mEnglish ? "Orange" : "橙色",
+                0x99FF9800
+        );
+
+        addColorButton(
+                content,
+                mEnglish ? "Yellow" : "黄色",
+                0x99FFEB3B
+        );
+
+        addColorButton(
+                content,
+                mEnglish ? "Green" : "绿色",
+                0x994CAF50
+        );
+
+        addColorButton(
+                content,
+                mEnglish ? "Light Green" : "浅绿色",
+                0x997CB342
+        );
+
+        addColorButton(
+                content,
+                mEnglish ? "Blue" : "蓝色",
+                0x992196F3
+        );
+
+        addColorButton(
+                content,
+                mEnglish ? "Purple" : "紫色",
+                0x999C27B0
+        );
+
+        addColorButton(
+                content,
+                mEnglish ? "Pink" : "粉色",
+                0x99E91E63
+        );
+
+        TextView note =
+                new TextView(this);
+
+        note.setTextSize(
+                13
+        );
+
+        note.setPadding(
+                0,
+                32,
+                0,
+                32
+        );
+
+        note.setText(
+                mEnglish
+                        ? "The background uses a capsule shape. "
+                        + "The text area automatically expands when "
+                        + "CPU / GPU information is longer."
+                        : "背景使用胶囊形状。CPU / GPU 信息较长时，"
+                        + "胶囊会自动扩大，避免文字溢出。"
+        );
+
+        content.addView(
+                note
+        );
+
+        Button backButton =
+                new Button(this);
+
+        backButton.setText(
+                mEnglish
+                        ? "Back"
+                        : "返回"
+        );
+
+        backButton.setOnClickListener(
                 new View.OnClickListener() {
 
                     @Override
@@ -630,270 +824,42 @@ public class MainActivity extends Activity {
                 }
         );
 
-        root.addView(back);
+        content.addView(
+                backButton
+        );
 
-        final ColorPickerView picker =
-                new ColorPickerView(
-                        this,
-                        hsv
-                );
+        scrollView.addView(
+                content
+        );
 
-        LinearLayout.LayoutParams pickerParams =
-                new LinearLayout.LayoutParams(
+        frame.addView(
+                scrollView,
+                new FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
-                        520
-                );
-
-        pickerParams.topMargin = 32;
-
-        root.addView(
-                picker,
-                pickerParams
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                )
         );
 
-        TextView hueTitle =
-                new TextView(this);
+        setContentView(frame);
+    }
 
-        hueTitle.setText(
-                mEnglish
-                        ? "Hue"
-                        : "色相"
-        );
+    private void addColorButton(
+            LinearLayout parent,
+            String title,
+            final int color) {
 
-        hueTitle.setTextSize(14);
-
-        hueTitle.setPadding(
-                0,
-                24,
-                0,
-                8
-        );
-
-        root.addView(hueTitle);
-
-        SeekBar hueBar =
-                new SeekBar(this);
-
-        hueBar.setMax(360);
-
-        hueBar.setProgress(
-                Math.round(hsv[0])
-        );
-
-        setHueBarGradient(hueBar);
-
-        root.addView(hueBar);
-
-        TextView alphaTitle =
-                new TextView(this);
-
-        alphaTitle.setText(
-                mEnglish
-                        ? "Alpha / Transparency"
-                        : "透明度 Alpha"
-        );
-
-        alphaTitle.setTextSize(14);
-
-        alphaTitle.setPadding(
-                0,
-                24,
-                0,
-                8
-        );
-
-        root.addView(alphaTitle);
-
-        SeekBar alphaBar =
-                new SeekBar(this);
-
-        alphaBar.setMax(255);
-
-        alphaBar.setProgress(
-                alpha[0]
-        );
-
-        root.addView(alphaBar);
-
-        final TextView preview =
-                new TextView(this);
-
-        preview.setTextSize(15);
-
-        preview.setGravity(
-                Gravity.CENTER
-        );
-
-        LinearLayout.LayoutParams previewParams =
-                new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        120
-                );
-
-        previewParams.topMargin = 28;
-
-        root.addView(
-                preview,
-                previewParams
-        );
-
-        final TextView hexText =
-                new TextView(this);
-
-        hexText.setTextSize(15);
-
-        hexText.setGravity(
-                Gravity.CENTER
-        );
-
-        root.addView(hexText);
-
-        View.OnClickListener unused =
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                    }
-                };
-
-        Runnable update =
-                new Runnable() {
-
-                    @Override
-                    public void run() {
-
-                        int color =
-                                Color.HSVToColor(
-                                        alpha[0],
-                                        hsv
-                                );
-
-                        updateColorPreview(
-                                preview,
-                                color
-                        );
-
-                        hexText.setText(
-                                String.format(
-                                        Locale.US,
-                                        "#%08X",
-                                        color
-                                )
-                        );
-                    }
-                };
-
-        hueBar.setOnSeekBarChangeListener(
-                new SeekBar.OnSeekBarChangeListener() {
-
-                    @Override
-                    public void onProgressChanged(
-                            SeekBar seekBar,
-                            int progress,
-                            boolean fromUser) {
-
-                        hsv[0] =
-                                progress;
-
-                        picker.setHue(
-                                hsv[0]
-                        );
-
-                        int color =
-                                Color.HSVToColor(
-                                        alpha[0],
-                                        hsv
-                                );
-
-                        updateColorPreview(
-                                preview,
-                                color
-                        );
-
-                        hexText.setText(
-                                String.format(
-                                        Locale.US,
-                                        "#%08X",
-                                        color
-                                )
-                        );
-                    }
-
-                    @Override
-                    public void onStartTrackingTouch(
-                            SeekBar seekBar) {
-                    }
-
-                    @Override
-                    public void onStopTrackingTouch(
-                            SeekBar seekBar) {
-                    }
-                }
-        );
-
-        alphaBar.setOnSeekBarChangeListener(
-                new SeekBar.OnSeekBarChangeListener() {
-
-                    @Override
-                    public void onProgressChanged(
-                            SeekBar seekBar,
-                            int progress,
-                            boolean fromUser) {
-
-                        alpha[0] =
-                                progress;
-
-                        int color =
-                                Color.HSVToColor(
-                                        alpha[0],
-                                        hsv
-                                );
-
-                        updateColorPreview(
-                                preview,
-                                color
-                        );
-
-                        hexText.setText(
-                                String.format(
-                                        Locale.US,
-                                        "#%08X",
-                                        color
-                                )
-                        );
-                    }
-
-                    @Override
-                    public void onStartTrackingTouch(
-                            SeekBar seekBar) {
-                    }
-
-                    @Override
-                    public void onStopTrackingTouch(
-                            SeekBar seekBar) {
-                    }
-                }
-        );
-
-        Button apply =
+        Button button =
                 new Button(this);
 
-        apply.setText(
-                mEnglish
-                        ? "Apply"
-                        : "应用"
+        button.setText(
+                title
         );
 
-        apply.setOnClickListener(
+        button.setOnClickListener(
                 new View.OnClickListener() {
 
                     @Override
                     public void onClick(View v) {
-
-                        int color =
-                                Color.HSVToColor(
-                                        alpha[0],
-                                        hsv
-                                );
 
                         boolean ok =
                                 writeColorToFile(
@@ -905,8 +871,8 @@ public class MainActivity extends Activity {
                             Toast.makeText(
                                     MainActivity.this,
                                     mEnglish
-                                            ? "Background color saved"
-                                            : "背景颜色已保存",
+                                            ? "Background color changed"
+                                            : "背景颜色已修改",
                                     Toast.LENGTH_SHORT
                             ).show();
 
@@ -924,309 +890,36 @@ public class MainActivity extends Activity {
                 }
         );
 
-        root.addView(apply);
-
-        setContentView(root);
-
-        update.run();
-    }
-
-    private void updateColorPreview(
-            TextView view,
-            int color) {
-
-        GradientDrawable drawable =
-                new GradientDrawable();
-
-        drawable.setColor(color);
-
-        drawable.setCornerRadius(
-                1000
-        );
-
-        view.setBackground(
-                drawable
-        );
-
-        view.setText(
-                mEnglish
-                        ? "Preview"
-                        : "预览"
-        );
-    }
-
-    private void setHueBarGradient(
-            SeekBar bar) {
-
-        bar.post(
-                new Runnable() {
-
-                    @Override
-                    public void run() {
-
-                        int width =
-                                bar.getWidth();
-
-                        if (width <= 0) {
-                            return;
-                        }
-
-                        int[] colors =
-                                new int[]{
-                                        Color.RED,
-                                        Color.YELLOW,
-                                        Color.GREEN,
-                                        Color.CYAN,
-                                        Color.BLUE,
-                                        Color.MAGENTA,
-                                        Color.RED
-                                };
-
-                        LinearGradient gradient =
-                                new LinearGradient(
-                                        0,
-                                        0,
-                                        width,
-                                        0,
-                                        colors,
-                                        null,
-                                        Shader.TileMode.CLAMP
-                                );
-
-                        Paint paint =
-                                new Paint();
-
-                        paint.setShader(
-                                gradient
-                        );
-
-                        android.graphics.Bitmap bitmap =
-                                android.graphics.Bitmap.createBitmap(
-                                        width,
-                                        40,
-                                        android.graphics.Bitmap.Config.ARGB_8888
-                                );
-
-                        android.graphics.Canvas canvas =
-                                new android.graphics.Canvas(bitmap);
-
-                        canvas.drawRect(
-                                0,
-                                0,
-                                width,
-                                40,
-                                paint
-                        );
-
-                        android.graphics.drawable.BitmapDrawable drawable =
-                                new android.graphics.drawable.BitmapDrawable(
-                                        getResources(),
-                                        bitmap
-                                );
-
-                        bar.setProgressDrawable(
-                                drawable
-                        );
-                    }
-                }
-        );
-    }
-
-    private static class ColorPickerView
-            extends View {
-
-        private final Paint paint =
-                new Paint(
-                        Paint.ANTI_ALIAS_FLAG
+        LinearLayout.LayoutParams params =
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
                 );
 
-        private final float[] hsv;
+        params.setMargins(
+                0,
+                4,
+                0,
+                4
+        );
 
-        ColorPickerView(
-                android.content.Context context,
-                float[] initialHsv) {
-
-            super(context);
-
-            hsv =
-                    initialHsv;
-
-            setLayerType(
-                    View.LAYER_TYPE_SOFTWARE,
-                    null
-            );
-        }
-
-        void setHue(float hue) {
-
-            hsv[0] =
-                    hue;
-
-            invalidate();
-        }
-
-        @Override
-        protected void onDraw(
-                android.graphics.Canvas canvas) {
-
-            super.onDraw(canvas);
-
-            int width =
-                    getWidth();
-
-            int height =
-                    getHeight();
-
-            if (width <= 0
-                    || height <= 0) {
-                return;
-            }
-
-            int hueColor =
-                    Color.HSVToColor(
-                            new float[]{
-                                    hsv[0],
-                                    1f,
-                                    1f
-                            }
-                    );
-
-            LinearGradient saturation =
-                    new LinearGradient(
-                            0,
-                            0,
-                            width,
-                            0,
-                            Color.WHITE,
-                            hueColor,
-                            Shader.TileMode.CLAMP
-                    );
-
-            paint.setShader(
-                    saturation
-            );
-
-            canvas.drawRect(
-                    0,
-                    0,
-                    width,
-                    height,
-                    paint
-            );
-
-            LinearGradient brightness =
-                    new LinearGradient(
-                            0,
-                            0,
-                            0,
-                            height,
-                            0x00000000,
-                            0xFF000000,
-                            Shader.TileMode.CLAMP
-                    );
-
-            paint.setShader(
-                    brightness
-            );
-
-            canvas.drawRect(
-                    0,
-                    0,
-                    width,
-                    height,
-                    paint
-            );
-
-            paint.setShader(null);
-
-            float x =
-                    hsv[1] * width;
-
-            float y =
-                    (1f - hsv[2]) * height;
-
-            paint.setStyle(
-                    Paint.Style.STROKE
-            );
-
-            paint.setStrokeWidth(
-                    5
-            );
-
-            paint.setColor(
-                    Color.WHITE
-            );
-
-            canvas.drawCircle(
-                    x,
-                    y,
-                    14,
-                    paint
-            );
-
-            paint.setStyle(
-                    Paint.Style.FILL
-            );
-        }
-
-        @Override
-        public boolean onTouchEvent(
-                MotionEvent event) {
-
-            if (event.getAction() ==
-                    MotionEvent.ACTION_DOWN
-                    || event.getAction() ==
-                    MotionEvent.ACTION_MOVE
-                    || event.getAction() ==
-                    MotionEvent.ACTION_UP) {
-
-                float saturation =
-                        event.getX()
-                                / getWidth();
-
-                float value =
-                        1f -
-                                event.getY()
-                                        / getHeight();
-
-                hsv[1] =
-                        Math.max(
-                                0f,
-                                Math.min(
-                                        1f,
-                                        saturation
-                                )
-                        );
-
-                hsv[2] =
-                        Math.max(
-                                0f,
-                                Math.min(
-                                        1f,
-                                        value
-                                )
-                        );
-
-                invalidate();
-
-                return true;
-            }
-
-            return true;
-        }
+        parent.addView(
+                button,
+                params
+        );
     }
 
     @Override
     protected void onResume() {
-
         super.onResume();
 
-        startDeepSleepUpdates();
+        if (mDeepSleepText != null) {
+            startDeepSleepUpdates();
+        }
     }
 
     @Override
     protected void onPause() {
-
         super.onPause();
 
         stopDeepSleepUpdates();
@@ -1287,9 +980,9 @@ public class MainActivity extends Activity {
         int percent =
                 elapsed > 0
                         ? (int) Math.round(
-                                deepSleepMs
-                                        * 100.0
-                                        / elapsed
+                                deepSleepMs *
+                                        100.0 /
+                                        elapsed
                         )
                         : 0;
 
@@ -1333,7 +1026,9 @@ public class MainActivity extends Activity {
         try {
 
             File f =
-                    new File(CONFIG_FILE);
+                    new File(
+                            CONFIG_FILE
+                    );
 
             if (!f.exists()) {
                 return MODE_TIME_RAM;
@@ -1408,43 +1103,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    private int readColorFromFile() {
-
-        try {
-
-            File f =
-                    new File(COLOR_FILE);
-
-            if (!f.exists()) {
-                return DEFAULT_COLOR;
-            }
-
-            BufferedReader br =
-                    new BufferedReader(
-                            new FileReader(f)
-                    );
-
-            String line =
-                    br.readLine();
-
-            br.close();
-
-            if (line == null) {
-                return DEFAULT_COLOR;
-            }
-
-            return (int)
-                    Long.parseLong(
-                            line.trim(),
-                            16
-                    );
-
-        } catch (Throwable t) {
-
-            return DEFAULT_COLOR;
-        }
-    }
-
     private boolean writeColorToFile(
             int color) {
 
@@ -1461,11 +1119,7 @@ public class MainActivity extends Activity {
 
             os.writeBytes(
                     "echo " +
-                            String.format(
-                                    Locale.US,
-                                    "%08X",
-                                    color
-                            ) +
+                            color +
                             " > " +
                             COLOR_FILE +
                             "\n"
