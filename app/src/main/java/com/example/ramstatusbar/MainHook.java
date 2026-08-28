@@ -2,7 +2,6 @@ package com.example.ramstatusbar;
 
 import android.app.ActivityManager;
 import android.content.Context;
-import android.graphics.Color;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
@@ -86,7 +85,8 @@ public class MainHook implements IXposedHookLoadPackage {
     }
 
     @Override
-    public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
+    public void handleLoadPackage(
+            XC_LoadPackage.LoadPackageParam lpparam) {
 
         if (!"com.android.systemui".equals(lpparam.packageName)) {
             return;
@@ -149,7 +149,6 @@ public class MainHook implements IXposedHookLoadPackage {
                                         (TextView) param.thisObject;
 
                                 if (mManaged.containsKey(tv)) {
-
                                     applyDisplayNow(tv);
                                 }
 
@@ -175,7 +174,8 @@ public class MainHook implements IXposedHookLoadPackage {
         }
     }
 
-    private void startManaging(final TextView clockView) {
+    private void startManaging(
+            final TextView clockView) {
 
         mManaged.put(
                 clockView,
@@ -191,7 +191,7 @@ public class MainHook implements IXposedHookLoadPackage {
         );
 
         /*
-         * 恢复为透明背景。
+         * 保持透明背景。
          */
         clockView.setBackground(null);
 
@@ -255,7 +255,6 @@ public class MainHook implements IXposedHookLoadPackage {
                 mRevertRunnables.remove(clockView);
 
         if (prev != null) {
-
             getHandler().removeCallbacks(prev);
         }
 
@@ -411,9 +410,19 @@ public class MainHook implements IXposedHookLoadPackage {
                     clockView.getPaint()
                             .measureText("0");
 
+            /*
+             * 比原来的宽度少半个字符。
+             *
+             * 原来：
+             * neededWidthPx + oneCharPx
+             *
+             * 现在：
+             * neededWidthPx + 0.5 个字符
+             */
             int desired =
                     Math.round(
-                            neededWidthPx + oneCharPx
+                            neededWidthPx
+                                    + oneCharPx * 0.5f
                     );
 
             Integer current =
@@ -565,7 +574,6 @@ public class MainHook implements IXposedHookLoadPackage {
         for (int tier : COMMON_RAM_TIERS_GB) {
 
             if (rawTotalGb <= tier + 0.5) {
-
                 return tier;
             }
         }
@@ -580,9 +588,7 @@ public class MainHook implements IXposedHookLoadPackage {
                 tryReadCpuPercent();
 
         if (percent != null) {
-
-            mLastCpuPercent =
-                    percent;
+            mLastCpuPercent = percent;
         }
 
         String percentPart =
@@ -604,9 +610,7 @@ public class MainHook implements IXposedHookLoadPackage {
                 );
 
         if (tempC != null) {
-
-            mLastCpuTempC =
-                    tempC;
+            mLastCpuTempC = tempC;
         }
 
         String tempPart =
@@ -664,9 +668,7 @@ public class MainHook implements IXposedHookLoadPackage {
                 tryReadGpuPercentRaw();
 
         if (percent != null) {
-
-            mLastGpuPercent =
-                    percent;
+            mLastGpuPercent = percent;
         }
 
         String percentPart =
@@ -688,9 +690,7 @@ public class MainHook implements IXposedHookLoadPackage {
                 );
 
         if (tempC != null) {
-
-            mLastGpuTempC =
-                    tempC;
+            mLastGpuTempC = tempC;
         }
 
         String tempPart =
