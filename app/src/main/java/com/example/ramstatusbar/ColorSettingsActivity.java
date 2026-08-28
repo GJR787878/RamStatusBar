@@ -13,15 +13,22 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.DataOutputStream;
+
 public class ColorSettingsActivity extends Activity {
 
-    private static final String PREFS_NAME = "ui_prefs";
-
-    private static final String KEY_BG_COLOR =
-            "background_color";
+    private static final String PREFS_NAME =
+            "ui_prefs";
 
     private static final String KEY_LANGUAGE =
             "language";
+
+    /*
+     * MainActivity 和 SystemUI 的 MainHook
+     * 都通过这个文件共享背景颜色。
+     */
+    private static final String COLOR_FILE =
+            "/data/local/tmp/ramstatusbar_color";
 
     private static final String LANG_EN =
             "en";
@@ -32,26 +39,37 @@ public class ColorSettingsActivity extends Activity {
 
     private TextView mPreview;
 
+    /*
+     * 预设颜色。
+     *
+     * 格式：
+     * AARRGGBB
+     */
     private static final int[] COLORS = {
-            0xFF000000,
-            0xFFFFFFFF,
-            0xFF202124,
-            0xFF3F51B5,
-            0xFF2196F3,
-            0xFF03A9F4,
-            0xFF00BCD4,
-            0xFF009688,
-            0xFF4CAF50,
-            0xFF8BC34A,
-            0xFFCDDC39,
-            0xFFFFEB3B,
-            0xFFFFC107,
-            0xFFFF9800,
-            0xFFFF5722,
-            0xFFF44336,
-            0xFFE91E63,
-            0xFF9C27B0,
-            0xFF673AB7
+
+            0xCC000000,
+            0xCCFFFFFF,
+
+            0xCC202124,
+            0xCC3F51B5,
+            0xCC2196F3,
+            0xCC03A9F4,
+            0xCC00BCD4,
+
+            0xCC009688,
+            0xCC4CAF50,
+            0xCC8BC34A,
+
+            0xCCCDDC39,
+            0xCCFFEB3B,
+            0xCCFFC107,
+            0xCCFF9800,
+
+            0xCCFF5722,
+            0xCCF44336,
+            0xCCE91E63,
+            0xCC9C27B0,
+            0xCC673AB7
     };
 
     @Override
@@ -60,7 +78,7 @@ public class ColorSettingsActivity extends Activity {
 
         super.onCreate(savedInstanceState);
 
-        android.content.SharedPreferences prefs =
+        SharedPreferences prefs =
                 getSharedPreferences(
                         PREFS_NAME,
                         MODE_PRIVATE
@@ -74,11 +92,11 @@ public class ColorSettingsActivity extends Activity {
                         )
                 );
 
+        /*
+         * 默认使用半透明黑色。
+         */
         mSelectedColor =
-                prefs.getInt(
-                        KEY_BG_COLOR,
-                        0xCC000000
-                );
+                readColorFromFile();
 
         float density =
                 getResources()
@@ -132,8 +150,7 @@ public class ColorSettingsActivity extends Activity {
 
         description.setText(
                 mEnglish
-                        ? "Choose a background color for the "
-                        + "status bar capsule."
+                        ? "Choose a background color for the status bar capsule."
                         : "选择状态栏胶囊背景颜色。"
         );
 
@@ -161,18 +178,12 @@ public class ColorSettingsActivity extends Activity {
 
         mPreview.setTextSize(16);
 
-        mPreview.setTextColor(
-                getPreviewTextColor()
-        );
-
         mPreview.setGravity(
                 Gravity.CENTER
         );
 
         mPreview.setText(
-                mEnglish
-                        ? "21:11 2.5G/8G"
-                        : "21:11 2.5G/8G"
+                "21:11 2.5G/8G"
         );
 
         LinearLayout.LayoutParams previewParams =
@@ -220,7 +231,9 @@ public class ColorSettingsActivity extends Activity {
 
         LinearLayout currentRow = null;
 
-        for (int i = 0; i < COLORS.length; i++) {
+        for (int i = 0;
+             i < COLORS.length;
+             i++) {
 
             if (i % columnCount == 0) {
 
@@ -282,20 +295,32 @@ public class ColorSettingsActivity extends Activity {
                         public void onClick(
                                 View v) {
 
-                            mSelectedColor =
-                                    color;
+                            if (saveColorToFile(
+                                    color)) {
 
-                            saveColor();
+                                mSelectedColor =
+                                        color;
 
-                            updatePreview();
+                                updatePreview();
 
-                            Toast.makeText(
-                                    ColorSettingsActivity.this,
-                                    mEnglish
-                                            ? "Color saved"
-                                            : "颜色已保存",
-                                    Toast.LENGTH_SHORT
-                            ).show();
+                                Toast.makeText(
+                                        ColorSettingsActivity.this,
+                                        mEnglish
+                                                ? "Color saved"
+                                                : "颜色已保存",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+
+                            } else {
+
+                                Toast.makeText(
+                                        ColorSettingsActivity.this,
+                                        mEnglish
+                                                ? "Save failed. Please grant root permission."
+                                                : "保存失败，请检查 root 权限。",
+                                        Toast.LENGTH_LONG
+                                ).show();
+                            }
                         }
                     }
             );
@@ -328,6 +353,9 @@ public class ColorSettingsActivity extends Activity {
                 )
         );
 
+        /*
+         * 透明背景按钮。
+         */
         Button transparentButton =
                 new Button(this);
 
@@ -343,22 +371,35 @@ public class ColorSettingsActivity extends Activity {
                 new View.OnClickListener() {
 
                     @Override
-                    public void onClick(View v) {
+                    public void onClick(
+                            View v) {
 
-                        mSelectedColor =
-                                Color.TRANSPARENT;
+                        if (saveColorToFile(
+                                Color.TRANSPARENT)) {
 
-                        saveColor();
+                            mSelectedColor =
+                                    Color.TRANSPARENT;
 
-                        updatePreview();
+                            updatePreview();
 
-                        Toast.makeText(
-                                ColorSettingsActivity.this,
-                                mEnglish
-                                        ? "Transparent background saved"
-                                        : "已设置为透明背景",
-                                Toast.LENGTH_SHORT
-                        ).show();
+                            Toast.makeText(
+                                    ColorSettingsActivity.this,
+                                    mEnglish
+                                            ? "Transparent background saved"
+                                            : "已设置为透明背景",
+                                    Toast.LENGTH_SHORT
+                            ).show();
+
+                        } else {
+
+                            Toast.makeText(
+                                    ColorSettingsActivity.this,
+                                    mEnglish
+                                            ? "Save failed. Please grant root permission."
+                                            : "保存失败，请检查 root 权限。",
+                                    Toast.LENGTH_LONG
+                            ).show();
+                        }
                     }
                 }
         );
@@ -377,6 +418,9 @@ public class ColorSettingsActivity extends Activity {
                 transparentParams
         );
 
+        /*
+         * 返回按钮。
+         */
         Button backButton =
                 new Button(this);
 
@@ -392,7 +436,8 @@ public class ColorSettingsActivity extends Activity {
                 new View.OnClickListener() {
 
                     @Override
-                    public void onClick(View v) {
+                    public void onClick(
+                            View v) {
 
                         finish();
                     }
@@ -416,18 +461,125 @@ public class ColorSettingsActivity extends Activity {
         setContentView(root);
     }
 
-    private void saveColor() {
+    /*
+     * 从共享文件读取颜色。
+     *
+     * 文件内容格式：
+     *
+     * CC000000
+     * FFFFFFFF
+     * 00000000
+     *
+     * 即 AARRGGBB。
+     */
+    private int readColorFromFile() {
 
-        getSharedPreferences(
-                PREFS_NAME,
-                MODE_PRIVATE
-        )
-                .edit()
-                .putInt(
-                        KEY_BG_COLOR,
-                        mSelectedColor
-                )
-                .apply();
+        try {
+
+            java.io.File file =
+                    new java.io.File(
+                            COLOR_FILE
+                    );
+
+            if (!file.exists()) {
+
+                return 0xCC000000;
+            }
+
+            java.io.BufferedReader br =
+                    new java.io.BufferedReader(
+                            new java.io.FileReader(
+                                    file
+                            )
+                    );
+
+            String line =
+                    br.readLine();
+
+            br.close();
+
+            if (line == null) {
+
+                return 0xCC000000;
+            }
+
+            line =
+                    line.trim()
+                            .replace(
+                                    "#",
+                                    ""
+                            );
+
+            long value =
+                    Long.parseLong(
+                            line,
+                            16
+                    );
+
+            return (int) value;
+
+        } catch (Throwable t) {
+
+            return 0xCC000000;
+        }
+    }
+
+    /*
+     * 使用 root 写入共享颜色文件。
+     */
+    private boolean saveColorToFile(
+            int color) {
+
+        try {
+
+            /*
+             * 转成 8 位 AARRGGBB。
+             */
+            String hex =
+                    String.format(
+                            Locale.US,
+                            "%08X",
+                            color
+                    );
+
+            Process su =
+                    Runtime.getRuntime()
+                            .exec("su");
+
+            DataOutputStream os =
+                    new DataOutputStream(
+                            su.getOutputStream()
+                    );
+
+            os.writeBytes(
+                    "echo "
+                            + hex
+                            + " > "
+                            + COLOR_FILE
+                            + "\n"
+            );
+
+            os.writeBytes(
+                    "chmod 666 "
+                            + COLOR_FILE
+                            + "\n"
+            );
+
+            os.writeBytes(
+                    "exit\n"
+            );
+
+            os.flush();
+
+            int result =
+                    su.waitFor();
+
+            return result == 0;
+
+        } catch (Throwable t) {
+
+            return false;
+        }
     }
 
     private void updatePreview() {
@@ -436,24 +588,40 @@ public class ColorSettingsActivity extends Activity {
             return;
         }
 
-        GradientDrawable drawable =
-                new GradientDrawable();
+        /*
+         * 完全透明时不设置 drawable。
+         */
+        if (mSelectedColor ==
+                Color.TRANSPARENT) {
 
-        drawable.setShape(
-                GradientDrawable.RECTANGLE
-        );
+            mPreview.setBackground(
+                    null
+            );
 
-        drawable.setColor(
-                mSelectedColor
-        );
+        } else {
 
-        drawable.setCornerRadius(
-                1000
-        );
+            GradientDrawable drawable =
+                    new GradientDrawable();
 
-        mPreview.setBackground(
-                drawable
-        );
+            drawable.setShape(
+                    GradientDrawable.RECTANGLE
+            );
+
+            drawable.setColor(
+                    mSelectedColor
+            );
+
+            /*
+             * 超大圆角 = 胶囊形。
+             */
+            drawable.setCornerRadius(
+                    1000f
+            );
+
+            mPreview.setBackground(
+                    drawable
+            );
+        }
 
         mPreview.setTextColor(
                 getPreviewTextColor()
@@ -462,18 +630,26 @@ public class ColorSettingsActivity extends Activity {
 
     private int getPreviewTextColor() {
 
-        if (mSelectedColor == Color.TRANSPARENT) {
+        if (mSelectedColor ==
+                Color.TRANSPARENT) {
+
             return Color.BLACK;
         }
 
         int red =
-                Color.red(mSelectedColor);
+                Color.red(
+                        mSelectedColor
+                );
 
         int green =
-                Color.green(mSelectedColor);
+                Color.green(
+                        mSelectedColor
+                );
 
         int blue =
-                Color.blue(mSelectedColor);
+                Color.blue(
+                        mSelectedColor
+                );
 
         int brightness =
                 (red * 299
