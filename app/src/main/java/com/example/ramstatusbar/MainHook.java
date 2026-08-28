@@ -53,18 +53,6 @@ public class MainHook implements IXposedHookLoadPackage {
             3, 4, 6, 8, 12, 16, 18, 24, 32
     };
 
-    /*
-     * 浅绿色背景。
-     *
-     * 如果你想换颜色：
-     *
-     * #80FF80 = 比较明显的浅绿色
-     * #AAFFAA = 更柔和
-     * #CCFFCC = 很淡
-     */
-    private static final int CLOCK_BACKGROUND_COLOR =
-            Color.rgb(128, 255, 128);
-
     private Handler mHandler;
 
     private final Map<TextView, SimpleDateFormat> mManaged =
@@ -112,9 +100,6 @@ public class MainHook implements IXposedHookLoadPackage {
                     lpparam.classLoader
             );
 
-            /*
-             * Clock 构造完成后开始管理。
-             */
             XposedBridge.hookAllConstructors(
                     clockClass,
                     new XC_MethodHook() {
@@ -142,12 +127,6 @@ public class MainHook implements IXposedHookLoadPackage {
                     }
             );
 
-            /*
-             * 监听 TextView.setText()。
-             *
-             * SystemUI 可能会自己不断刷新 Clock，
-             * 所以这里重新应用我们的显示内容。
-             */
             XposedHelpers.findAndHookMethod(
                     TextView.class,
                     "setText",
@@ -171,11 +150,6 @@ public class MainHook implements IXposedHookLoadPackage {
 
                                 if (mManaged.containsKey(tv)) {
 
-                                    /*
-                                     * 每次 SystemUI 修改文字时，
-                                     * 都重新设置背景和显示内容。
-                                     */
-                                    applyBackground(tv);
                                     applyDisplayNow(tv);
                                 }
 
@@ -217,13 +191,9 @@ public class MainHook implements IXposedHookLoadPackage {
         );
 
         /*
-         * 设置浅绿色背景。
-         *
-         * 这里没有设置 padding，
-         * 所以可以比较直观地观察 Clock
-         * TextView 本身的实际区域。
+         * 恢复为透明背景。
          */
-        applyBackground(clockView);
+        clockView.setBackground(null);
 
         clockView.setClickable(true);
 
@@ -255,9 +225,6 @@ public class MainHook implements IXposedHookLoadPackage {
 
         applyDisplayNow(clockView);
 
-        /*
-         * 每秒刷新一次。
-         */
         Runnable poller = new Runnable() {
 
             @Override
@@ -265,7 +232,6 @@ public class MainHook implements IXposedHookLoadPackage {
 
                 if (mManaged.containsKey(clockView)) {
 
-                    applyBackground(clockView);
                     applyDisplayNow(clockView);
 
                     getHandler().postDelayed(
@@ -280,27 +246,6 @@ public class MainHook implements IXposedHookLoadPackage {
                 poller,
                 UPDATE_INTERVAL_MS
         );
-    }
-
-    /*
-     * 设置背景颜色。
-     */
-    private void applyBackground(TextView clockView) {
-
-        try {
-
-            clockView.setBackgroundColor(
-                    CLOCK_BACKGROUND_COLOR
-            );
-
-        } catch (Throwable t) {
-
-            XposedBridge.log(
-                    TAG +
-                    ": 设置背景失败: " +
-                    t
-            );
-        }
     }
 
     private void scheduleAutoRevert(
@@ -435,10 +380,6 @@ public class MainHook implements IXposedHookLoadPackage {
                     neededWidthPx
             );
 
-            /*
-             * 防止我们的 setText() 再次触发
-             * 上面的 setText Hook。
-             */
             mApplyingOurText = true;
 
             try {
