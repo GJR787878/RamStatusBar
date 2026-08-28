@@ -45,7 +45,8 @@ public class MainActivity extends Activity {
     private static final String LANG_EN =
             "en";
 
-    private static final int BUTTON_WIDTH_DP = 100;
+    private static final int LANG_BUTTON_WIDTH_DP = 72;
+    private static final int COLOR_BUTTON_WIDTH_DP = 110;
 
     private boolean mEnglish;
 
@@ -57,7 +58,9 @@ public class MainActivity extends Activity {
     private Runnable mDeepSleepUpdater;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(
+            Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
 
         SharedPreferences uiPrefs =
@@ -77,13 +80,20 @@ public class MainActivity extends Activity {
         int currentMode =
                 readCurrentModeOrDefault();
 
+        float density =
+                getResources()
+                        .getDisplayMetrics()
+                        .density;
+
         int screenWidthPx =
                 getResources()
                         .getDisplayMetrics()
                         .widthPixels;
 
         final int contentWidthPx =
-                screenWidthPx - 48 - 48;
+                screenWidthPx
+                        - Math.round(48 * density)
+                        - Math.round(48 * density);
 
         FrameLayout frame =
                 new FrameLayout(this);
@@ -99,10 +109,10 @@ public class MainActivity extends Activity {
         );
 
         content.setPadding(
-                48,
-                96,
-                48,
-                220
+                Math.round(48 * density),
+                Math.round(96 * density),
+                Math.round(48 * density),
+                Math.round(180 * density)
         );
 
         TextView title =
@@ -125,17 +135,17 @@ public class MainActivity extends Activity {
 
         intro.setPadding(
                 0,
-                24,
+                Math.round(24 * density),
                 0,
-                32
+                Math.round(32 * density)
         );
 
         String introZh =
                 "选择下面的显示模式，最多等 1 秒即可生效，不需要重启手机。";
 
         String introEn =
-                "Pick a display mode below. Changes take effect within 1 second, "
-                        + "no reboot needed.";
+                "Pick a display mode below. Changes take effect "
+                        + "within 1 second, no reboot needed.";
 
         setBilingualText(
                 intro,
@@ -224,19 +234,16 @@ public class MainActivity extends Activity {
                         if (checkedId ==
                                 rbTimeOnly.getId()) {
 
-                            mode =
-                                    MODE_TIME_ONLY;
+                            mode = MODE_TIME_ONLY;
 
                         } else if (checkedId ==
                                 rbRamOnly.getId()) {
 
-                            mode =
-                                    MODE_RAM_ONLY;
+                            mode = MODE_RAM_ONLY;
 
                         } else {
 
-                            mode =
-                                    MODE_TIME_RAM;
+                            mode = MODE_TIME_RAM;
                         }
 
                         boolean ok =
@@ -269,8 +276,11 @@ public class MainActivity extends Activity {
                         2
                 );
 
-        dividerParams.topMargin = 64;
-        dividerParams.bottomMargin = 24;
+        dividerParams.topMargin =
+                Math.round(64 * density);
+
+        dividerParams.bottomMargin =
+                Math.round(24 * density);
 
         content.addView(
                 divider,
@@ -284,9 +294,9 @@ public class MainActivity extends Activity {
 
         tapFeatureTitle.setPadding(
                 0,
-                32,
+                Math.round(32 * density),
                 0,
-                8
+                Math.round(8 * density)
         );
 
         tapFeatureTitle.setText(
@@ -312,11 +322,13 @@ public class MainActivity extends Activity {
                         + "\"GPU N/A\"，能否读取取决于你的芯片型号。";
 
         String tapEn =
-                "Tap the status bar clock: 1st tap shows CPU usage, 2nd tap shows "
-                        + "GPU usage, 3rd tap returns to normal. If left untouched for "
-                        + "10 seconds it automatically returns to normal as well.\n\n"
-                        + "GPU usage relies on chip-specific sysfs paths and may show "
-                        + "\"GPU N/A\" on some devices, depending on your chipset.";
+                "Tap the status bar clock: 1st tap shows CPU usage, "
+                        + "2nd tap shows GPU usage, 3rd tap returns to normal. "
+                        + "If left untouched for 10 seconds it automatically "
+                        + "returns to normal as well.\n\n"
+                        + "GPU usage relies on chip-specific sysfs paths "
+                        + "and may show \"GPU N/A\" on some devices, "
+                        + "depending on your chipset.";
 
         setBilingualText(
                 tapFeatureBody,
@@ -336,9 +348,9 @@ public class MainActivity extends Activity {
 
         deepSleepTitle.setPadding(
                 0,
-                96,
+                Math.round(96 * density),
                 0,
-                8
+                Math.round(8 * density)
         );
 
         deepSleepTitle.setText(
@@ -361,9 +373,9 @@ public class MainActivity extends Activity {
                         + "\"关于本机\"里的数值一致，不用再去系统设置里翻找。";
 
         String deepSleepEn =
-                "Shown below is how much of the time since boot the device has "
-                        + "spent in deep sleep, same figure as in About Phone — no "
-                        + "more need to dig through system settings to find it.";
+                "Shown below is how much of the time since boot the device "
+                        + "has spent in deep sleep, same figure as in About Phone "
+                        + "\u2014 no more need to dig through system settings to find it.";
 
         setBilingualText(
                 deepSleepDesc,
@@ -383,7 +395,7 @@ public class MainActivity extends Activity {
 
         mDeepSleepText.setPadding(
                 0,
-                16,
+                Math.round(16 * density),
                 0,
                 0
         );
@@ -399,9 +411,9 @@ public class MainActivity extends Activity {
 
         setupTitle.setPadding(
                 0,
-                96,
+                Math.round(96 * density),
                 0,
-                8
+                Math.round(8 * density)
         );
 
         setupTitle.setText(
@@ -421,13 +433,14 @@ public class MainActivity extends Activity {
 
         setupBody.setText(
                 mEnglish
-                        ? "1. In LSPosed / Vector Manager, enable this module and check the "
-                        + "scope com.android.systemui.\n"
+                        ? "1. In LSPosed / Vector Manager, enable this module "
+                        + "and check the scope com.android.systemui.\n"
                         + "2. Reboot once after the first install for it to take effect.\n"
-                        + "3. Switching the display mode above requires root; a "
-                        + "permission prompt will appear the first time — please allow it.\n"
-                        + "4. Total RAM is auto-detected and rounded up to the nearest "
-                        + "common spec (8/12/16/24G, etc)."
+                        + "3. Switching the display mode above requires root; "
+                        + "a permission prompt will appear the first time "
+                        + "\u2014 please allow it.\n"
+                        + "4. Total RAM is auto-detected and rounded up to "
+                        + "the nearest common spec (8/12/16/24G, etc)."
                         : "1. 到 LSPosed / Vector Manager 里，对本模块勾选作用域 "
                         + "com.android.systemui 并启用模块。\n"
                         + "2. 首次安装完成后需要重启一次手机才会生效。\n"
@@ -458,20 +471,19 @@ public class MainActivity extends Activity {
         );
 
         /*
-         * 底部按钮区域：
+         * 底部按钮栏。
          *
-         * [ 背景颜色 ] [ 中文 / EN ]
-         *
+         * 背景颜色 + 中英文切换
          * 两个按钮放在同一行。
          */
-        LinearLayout bottomButtons =
+        LinearLayout bottomBar =
                 new LinearLayout(this);
 
-        bottomButtons.setOrientation(
+        bottomBar.setOrientation(
                 LinearLayout.HORIZONTAL
         );
 
-        bottomButtons.setGravity(
+        bottomBar.setGravity(
                 Gravity.CENTER
         );
 
@@ -483,6 +495,8 @@ public class MainActivity extends Activity {
                         ? "Background"
                         : "背景颜色"
         );
+
+        colorButton.setAllCaps(false);
 
         colorButton.setOnClickListener(
                 new View.OnClickListener() {
@@ -509,6 +523,8 @@ public class MainActivity extends Activity {
                         ? "中文"
                         : "EN"
         );
+
+        langButton.setAllCaps(false);
 
         langButton.setOnClickListener(
                 new View.OnClickListener() {
@@ -539,64 +555,58 @@ public class MainActivity extends Activity {
                 }
         );
 
-        float density =
-                getResources()
-                        .getDisplayMetrics()
-                        .density;
-
-        int buttonWidthPx =
+        int colorButtonWidthPx =
                 Math.round(
-                        BUTTON_WIDTH_DP * density
+                        COLOR_BUTTON_WIDTH_DP
+                                * density
+                );
+
+        int langButtonWidthPx =
+                Math.round(
+                        LANG_BUTTON_WIDTH_DP
+                                * density
                 );
 
         LinearLayout.LayoutParams colorParams =
                 new LinearLayout.LayoutParams(
-                        buttonWidthPx,
+                        colorButtonWidthPx,
                         ViewGroup.LayoutParams.WRAP_CONTENT
                 );
 
-        colorParams.setMargins(
-                0,
-                0,
-                Math.round(6 * density),
-                0
-        );
+        colorParams.rightMargin =
+                Math.round(8 * density);
 
-        bottomButtons.addView(
+        LinearLayout.LayoutParams langParams =
+                new LinearLayout.LayoutParams(
+                        langButtonWidthPx,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+
+        bottomBar.addView(
                 colorButton,
                 colorParams
         );
 
-        LinearLayout.LayoutParams langParams =
-                new LinearLayout.LayoutParams(
-                        buttonWidthPx,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                );
-
-        bottomButtons.addView(
+        bottomBar.addView(
                 langButton,
                 langParams
         );
 
-        FrameLayout.LayoutParams bottomParams =
+        FrameLayout.LayoutParams bottomBarParams =
                 new FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.WRAP_CONTENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT
                 );
 
-        bottomParams.gravity =
-                Gravity.BOTTOM | Gravity.END;
+        bottomBarParams.gravity =
+                Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
 
-        bottomParams.setMargins(
-                0,
-                0,
-                Math.round(24 * density),
-                Math.round(24 * density)
-        );
+        bottomBarParams.bottomMargin =
+                Math.round(24 * density);
 
         frame.addView(
-                bottomButtons,
-                bottomParams
+                bottomBar,
+                bottomBarParams
         );
 
         setContentView(frame);
@@ -604,13 +614,17 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onResume() {
+
         super.onResume();
+
         startDeepSleepUpdates();
     }
 
     @Override
     protected void onPause() {
+
         super.onPause();
+
         stopDeepSleepUpdates();
     }
 
@@ -669,7 +683,9 @@ public class MainActivity extends Activity {
         int percent =
                 elapsed > 0
                         ? (int) Math.round(
-                                deepSleepMs * 100.0 / elapsed
+                                deepSleepMs
+                                        * 100.0
+                                        / elapsed
                         )
                         : 0;
 
