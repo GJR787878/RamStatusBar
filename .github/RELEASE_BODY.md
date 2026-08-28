@@ -51,14 +51,20 @@
 
 <div align="center">
 
-**状态栏显示效果 / Status bar display**
-![Status bar](https://raw.githubusercontent.com/GJR787878/RamStatusBar/main/docs/images/screenshot_statusbar.png)
+**主页 / Home（软件介绍 + 深度休眠）**
+![Home](https://raw.githubusercontent.com/GJR787878/RamStatusBar/main/docs/images/screenshot_home.png)
 
-**三种显示模式 / Three display modes (CPU · Time+RAM · GPU)**
-![Display modes](https://raw.githubusercontent.com/GJR787878/RamStatusBar/main/docs/images/screenshot_modes.png)
+**配置页 / Config（显示模式选择）**
+![Config](https://raw.githubusercontent.com/GJR787878/RamStatusBar/main/docs/images/screenshot_config.png)
 
-**颜色设置界面 / Color picker**
-![Color picker](https://raw.githubusercontent.com/GJR787878/RamStatusBar/main/docs/images/screenshot_color_picker.png)
+**设置页 / Settings（背景颜色 + 语言切换）**
+![Settings](https://raw.githubusercontent.com/GJR787878/RamStatusBar/main/docs/images/screenshot_settings.png)
+
+**颜色设置页 / Background Color**
+![Color page](https://raw.githubusercontent.com/GJR787878/RamStatusBar/main/docs/images/screenshot_color_page.png)
+
+**HSV 取色器 / HSV Color Picker**
+![Color picker](https://raw.githubusercontent.com/GJR787878/RamStatusBar/main/docs/images/screenshot_color_picker_dialog.png)
 
 </div>
 
