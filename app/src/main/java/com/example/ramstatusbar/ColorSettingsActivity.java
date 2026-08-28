@@ -1114,6 +1114,12 @@ public class ColorSettingsActivity extends Activity {
                 new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint mSelectorPaint =
                 new Paint(Paint.ANTI_ALIAS_FLAG);
+        /*
+         * 独立于 mPaint 的亮度遮罩画笔，
+         * 避免遮罩颜色/透明度污染色轮位图绘制。
+         */
+        private final Paint mDimPaint =
+                new Paint(Paint.ANTI_ALIAS_FLAG);
         private Bitmap mWheelBitmap;
         private float mRadius;
         private float mCenterX;
@@ -1292,6 +1298,19 @@ public class ColorSettingsActivity extends Activity {
         protected void onDraw(
                 Canvas canvas) {
             super.onDraw(canvas);
+            /*
+             * 绘制色轮前先复位 mPaint：
+             * 避免上一次遮罩绘制留下的黑色/半透明
+             * 状态污染 drawBitmap，导致色轮变黑。
+             */
+            mPaint.setColor(
+                    Color.WHITE
+            );
+            mPaint.setAlpha(255);
+            mPaint.setStyle(
+                    Paint.Style.FILL
+            );
+            mPaint.setShader(null);
             if (mWheelBitmap != null) {
                 canvas.drawBitmap(
                         mWheelBitmap,
@@ -1307,6 +1326,7 @@ public class ColorSettingsActivity extends Activity {
              *
              * 最多压暗 50%，保证取色盘在任何亮度下
              * 都能看到颜色，不会整个变黑。
+             * 使用独立 Paint，不污染绘制色轮的 mPaint。
              */
             if (mValue < 1f) {
                 int dim =
@@ -1316,7 +1336,7 @@ public class ColorSettingsActivity extends Activity {
                                         * 128f
                         );
                 if (dim > 0) {
-                    mPaint.setColor(
+                    mDimPaint.setColor(
                             Color.argb(
                                     dim,
                                     0,
@@ -1324,14 +1344,14 @@ public class ColorSettingsActivity extends Activity {
                                     0
                             )
                     );
-                    mPaint.setStyle(
+                    mDimPaint.setStyle(
                             Paint.Style.FILL
                     );
                     canvas.drawCircle(
                             mCenterX,
                             mCenterY,
                             mRadius,
-                            mPaint
+                            mDimPaint
                     );
                 }
             }
