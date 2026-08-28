@@ -41,8 +41,13 @@ public class MainHook implements IXposedHookLoadPackage {
             "/data/local/tmp/ramstatusbar_cpu";
 
     /*
-     * MainActivity 保存自定义背景颜色的文件。
-     * 第一行保存 ARGB 整数值。
+     * 背景颜色配置文件。
+     *
+     * 格式：
+     * 例如 FF000000
+     *
+     * 前两位 = Alpha
+     * 后六位 = RGB
      */
     private static final String COLOR_FILE =
             "/data/local/tmp/ramstatusbar_color";
@@ -63,17 +68,28 @@ public class MainHook implements IXposedHookLoadPackage {
     };
 
     /*
-     * 默认背景颜色。
+     * 默认背景：
      *
-     * 这里使用半透明黑色。
-     * Alpha = 0 表示完全透明。
+     * 00FFFFFF = 完全透明
      *
-     * 如果想恢复透明背景，也可以直接把这里改成：
-     *
-     * Color.TRANSPARENT
+     * 以后 MainActivity 修改 COLOR_FILE 后，
+     * MainHook 会自动读取新的颜色。
      */
     private static final int DEFAULT_BACKGROUND_COLOR =
-            0x66000000;
+            Color.TRANSPARENT;
+
+    /*
+     * 胶囊左右内边距。
+     *
+     * 不使用过大的固定宽度，
+     * 而是根据文字实际宽度计算。
+     */
+    private static final float HORIZONTAL_PADDING_DP = 6.0f;
+
+    /*
+     * 胶囊上下内边距。
+     */
+    private static final float VERTICAL_PADDING_DP = 2.0f;
 
     private Handler mHandler;
 
@@ -101,9 +117,14 @@ public class MainHook implements IXposedHookLoadPackage {
     private List<File> mGpuTempZones = null;
 
     private Handler getHandler() {
+
         if (mHandler == null) {
-            mHandler = new Handler(Looper.getMainLooper());
+            mHandler =
+                    new Handler(
+                            Looper.getMainLooper()
+                    );
         }
+
         return mHandler;
     }
 
@@ -111,17 +132,20 @@ public class MainHook implements IXposedHookLoadPackage {
     public void handleLoadPackage(
             XC_LoadPackage.LoadPackageParam lpparam) {
 
-        if (!"com.android.systemui".equals(lpparam.packageName)) {
+        if (!"com.android.systemui".equals(
+                lpparam.packageName)) {
+
             return;
         }
 
         try {
 
-            Class<?> clockClass = Class.forName(
-                    CLOCK_CLASS,
-                    false,
-                    lpparam.classLoader
-            );
+            Class<?> clockClass =
+                    Class.forName(
+                            CLOCK_CLASS,
+                            false,
+                            lpparam.classLoader
+                    );
 
             XposedBridge.hookAllConstructors(
                     clockClass,
@@ -134,7 +158,8 @@ public class MainHook implements IXposedHookLoadPackage {
                             try {
 
                                 TextView tv =
-                                        (TextView) param.thisObject;
+                                        (TextView)
+                                                param.thisObject;
 
                                 startManaging(tv);
 
@@ -169,9 +194,11 @@ public class MainHook implements IXposedHookLoadPackage {
                                 }
 
                                 TextView tv =
-                                        (TextView) param.thisObject;
+                                        (TextView)
+                                                param.thisObject;
 
                                 if (mManaged.containsKey(tv)) {
+
                                     applyDisplayNow(tv);
                                 }
 
@@ -214,18 +241,17 @@ public class MainHook implements IXposedHookLoadPackage {
         );
 
         /*
-         * 设置胶囊背景。
+         * 点击本身仍然由 Clock 处理。
          */
-        applyCapsuleBackground(clockView);
-
         clockView.setClickable(true);
 
         /*
-         * 让文字在胶囊中水平居中。
+         * 创建胶囊背景。
+         *
+         * 颜色为透明时，
+         * 胶囊本身完全透明。
          */
-        clockView.setGravity(
-                Gravity.CENTER
-        );
+        applyCapsuleBackground(clockView);
 
         clockView.setOnClickListener(
                 new View.OnClickListener() {
@@ -234,7 +260,9 @@ public class MainHook implements IXposedHookLoadPackage {
                     public void onClick(View v) {
 
                         Integer cur =
-                                mTapState.get(clockView);
+                                mTapState.get(
+                                        clockView
+                                );
 
                         int next =
                                 ((cur == null
@@ -246,32 +274,39 @@ public class MainHook implements IXposedHookLoadPackage {
                                 next
                         );
 
-                        applyDisplayNow(clockView);
+                        applyDisplayNow(
+                                clockView
+                        );
 
-                        scheduleAutoRevert(clockView);
+                        scheduleAutoRevert(
+                                clockView
+                        );
                     }
                 }
         );
 
         applyDisplayNow(clockView);
 
-        Runnable poller = new Runnable() {
+        Runnable poller =
+                new Runnable() {
 
-            @Override
-            public void run() {
+                    @Override
+                    public void run() {
 
-                if (mManaged.containsKey(clockView)) {
+                        if (mManaged.containsKey(
+                                clockView)) {
 
-                    applyCapsuleBackground(clockView);
-                    applyDisplayNow(clockView);
+                            applyDisplayNow(
+                                    clockView
+                            );
 
-                    getHandler().postDelayed(
-                            this,
-                            UPDATE_INTERVAL_MS
-                    );
-                }
-            }
-        };
+                            getHandler().postDelayed(
+                                    this,
+                                    UPDATE_INTERVAL_MS
+                            );
+                        }
+                    }
+                };
 
         getHandler().postDelayed(
                 poller,
@@ -279,78 +314,13 @@ public class MainHook implements IXposedHookLoadPackage {
         );
     }
 
-    /*
-     * 创建胶囊形背景。
-     *
-     * 圆角半径设置成一个很大的值，
-     * 因此无论文字多长，两侧都会保持圆弧。
-     */
-    private void applyCapsuleBackground(
-            TextView clockView) {
-
-        try {
-
-            int color =
-                    readBackgroundColor();
-
-            GradientDrawable drawable =
-                    new GradientDrawable();
-
-            drawable.setColor(color);
-
-            /*
-             * 使用较大的圆角，
-             * 实现真正的胶囊效果。
-             */
-            drawable.setCornerRadius(
-                    1000f
-            );
-
-            /*
-             * 左右留一点空间，
-             * 防止文字贴住胶囊边缘。
-             */
-            float density =
-                    clockView.getResources()
-                            .getDisplayMetrics()
-                            .density;
-
-            int horizontalPadding =
-                    Math.round(
-                            4f * density
-                    );
-
-            int verticalPadding =
-                    Math.round(
-                            1f * density
-                    );
-
-            clockView.setPadding(
-                    horizontalPadding,
-                    verticalPadding,
-                    horizontalPadding,
-                    verticalPadding
-            );
-
-            clockView.setBackground(
-                    drawable
-            );
-
-        } catch (Throwable t) {
-
-            XposedBridge.log(
-                    TAG +
-                    ": 设置胶囊背景失败: " +
-                    t
-            );
-        }
-    }
-
     private void scheduleAutoRevert(
             final TextView clockView) {
 
         Runnable prev =
-                mRevertRunnables.remove(clockView);
+                mRevertRunnables.remove(
+                        clockView
+                );
 
         if (prev != null) {
 
@@ -359,25 +329,26 @@ public class MainHook implements IXposedHookLoadPackage {
             );
         }
 
-        Runnable revert = new Runnable() {
+        Runnable revert =
+                new Runnable() {
 
-            @Override
-            public void run() {
+                    @Override
+                    public void run() {
 
-                mTapState.put(
-                        clockView,
-                        TAP_NORMAL
-                );
+                        mTapState.put(
+                                clockView,
+                                TAP_NORMAL
+                        );
 
-                applyDisplayNow(
-                        clockView
-                );
+                        applyDisplayNow(
+                                clockView
+                        );
 
-                mRevertRunnables.remove(
-                        clockView
-                );
-            }
-        };
+                        mRevertRunnables.remove(
+                                clockView
+                        );
+                    }
+                };
 
         mRevertRunnables.put(
                 clockView,
@@ -394,7 +365,9 @@ public class MainHook implements IXposedHookLoadPackage {
             TextView clockView) {
 
         SimpleDateFormat timeFormat =
-                mManaged.get(clockView);
+                mManaged.get(
+                        clockView
+                );
 
         if (timeFormat == null) {
             return;
@@ -416,19 +389,12 @@ public class MainHook implements IXposedHookLoadPackage {
                     );
 
             String full =
-                    time +
-                    " " +
-                    ram;
-
-            /*
-             * 正常显示模式的宽度作为基准。
-             */
-            float targetWidthPx =
-                    clockView.getPaint()
-                            .measureText(full);
+                    time + " " + ram;
 
             Integer tapState =
-                    mTapState.get(clockView);
+                    mTapState.get(
+                            clockView
+                    );
 
             String rawContent;
 
@@ -470,54 +436,81 @@ public class MainHook implements IXposedHookLoadPackage {
             }
 
             /*
-             * 保证 CPU/GPU 文字不会超过胶囊。
+             * 胶囊的实际宽度：
              *
-             * 如果 CPU/GPU 内容比正常内容长，
-             * 则自动扩大胶囊。
+             * 文字宽度
+             * +
+             * 左右 padding
+             *
+             * 不再人为增加一个完整字符。
              */
-            float rawContentWidthPx =
+            float textWidth =
                     clockView.getPaint()
                             .measureText(
                                     rawContent
                             );
 
-            float neededWidthPx =
-                    Math.max(
-                            targetWidthPx,
-                            rawContentWidthPx
+            float padding =
+                    dpToPx(
+                            clockView.getContext(),
+                            HORIZONTAL_PADDING_DP
                     );
 
+            float neededWidth =
+                    textWidth +
+                    padding * 2.0f;
+
             /*
-             * 半个字符的额外空间。
+             * 高度使用文字高度 + 上下 padding。
              */
+            float verticalPadding =
+                    dpToPx(
+                            clockView.getContext(),
+                            VERTICAL_PADDING_DP
+                    );
+
+            int desiredHeight =
+                    calculateDesiredHeight(
+                            clockView,
+                            verticalPadding
+                    );
+
             ensureFixedWidth(
                     clockView,
-                    neededWidthPx
+                    neededWidth
+            );
+
+            ensureFixedHeight(
+                    clockView,
+                    desiredHeight
             );
 
             /*
-             * 如果当前内容较短，
-             * 用不可断行空格补齐。
+             * 不再用大量 NBSP 填充。
+             *
+             * 这样文字不会因为空格造成背景继续变长。
              */
-            String display =
-                    padToWidth(
-                            clockView,
-                            rawContent,
-                            neededWidthPx
-                    );
-
             mApplyingOurText = true;
 
             try {
 
                 clockView.setText(
-                        display
+                        rawContent
                 );
 
             } finally {
 
                 mApplyingOurText = false;
             }
+
+            /*
+             * 每次刷新都检查颜色，
+             * 这样 MainActivity 修改颜色后，
+             * 最多约 1 秒即可同步到状态栏。
+             */
+            applyCapsuleBackground(
+                    clockView
+            );
 
         } catch (Throwable t) {
 
@@ -529,24 +522,47 @@ public class MainHook implements IXposedHookLoadPackage {
         }
     }
 
+    private int calculateDesiredHeight(
+            TextView clockView,
+            float verticalPadding) {
+
+        try {
+
+            android.graphics.Paint.FontMetrics fm =
+                    clockView.getPaint()
+                            .getFontMetrics();
+
+            float textHeight =
+                    fm.bottom - fm.top;
+
+            return Math.round(
+                    textHeight +
+                    verticalPadding * 2.0f
+            );
+
+        } catch (Throwable ignored) {
+
+            return clockView.getMeasuredHeight();
+        }
+    }
+
     private void ensureFixedWidth(
             TextView clockView,
             float neededWidthPx) {
 
         try {
 
-            float oneCharPx =
-                    clockView.getPaint()
-                            .measureText("0");
-
             /*
-             * 背景左右各增加半个字符的一部分，
-             * 避免文字紧贴边缘。
+             * 这里不再额外加一个字符。
+             *
+             * 背景只保留很小的左右 padding。
              */
             int desired =
-                    Math.round(
-                            neededWidthPx
-                                    + oneCharPx * 0.5f
+                    Math.max(
+                            1,
+                            Math.round(
+                                    neededWidthPx
+                            )
                     );
 
             Integer current =
@@ -554,6 +570,10 @@ public class MainHook implements IXposedHookLoadPackage {
                             clockView
                     );
 
+            /*
+             * 只在需要变大时调整，
+             * 防止 SystemUI 不断触发布局。
+             */
             if (current != null
                     && desired <= current) {
 
@@ -565,7 +585,7 @@ public class MainHook implements IXposedHookLoadPackage {
                     desired
             );
 
-            android.view.ViewGroup.LayoutParams lp =
+            ViewGroup.LayoutParams lp =
                     clockView.getLayoutParams();
 
             if (lp != null) {
@@ -581,55 +601,204 @@ public class MainHook implements IXposedHookLoadPackage {
         }
     }
 
-    private String padToWidth(
-            TextView view,
-            String content,
-            float targetWidthPx) {
+    private void ensureFixedHeight(
+            TextView clockView,
+            int desiredHeightPx) {
 
-        android.graphics.Paint paint =
-                view.getPaint();
+        try {
 
-        float contentWidthPx =
-                paint.measureText(
-                        content
+            if (desiredHeightPx <= 0) {
+                return;
+            }
+
+            ViewGroup.LayoutParams lp =
+                    clockView.getLayoutParams();
+
+            if (lp == null) {
+                return;
+            }
+
+            /*
+             * 不强行缩小系统原本高度，
+             * 只保证胶囊不会因为文字被裁剪。
+             */
+            if (lp.height == ViewGroup.LayoutParams.WRAP_CONTENT
+                    || lp.height <= 0) {
+
+                lp.height =
+                        desiredHeightPx;
+
+                clockView.setLayoutParams(
+                        lp
                 );
+            }
 
-        float diffPx =
-                targetWidthPx -
-                        contentWidthPx;
-
-        if (diffPx <= 0) {
-            return content;
+        } catch (Throwable ignored) {
         }
+    }
 
-        float nbspWidthPx =
-                paint.measureText(
-                        "\u00A0"
-                );
+    private void applyCapsuleBackground(
+            TextView clockView) {
 
-        if (nbspWidthPx <= 0) {
-            return content;
-        }
+        try {
 
-        int count =
-                Math.round(
-                        diffPx /
-                                nbspWidthPx
-                );
+            int color =
+                    readBackgroundColor();
 
-        StringBuilder sb =
-                new StringBuilder(
-                        content
-                );
+            /*
+             * GradientDrawable 的圆角半径
+             * 设为高度的一半，
+             * 即得到真正的胶囊形状。
+             */
+            int height =
+                    clockView.getMeasuredHeight();
 
-        for (int i = 0; i < count; i++) {
+            if (height <= 0) {
 
-            sb.append(
-                    '\u00A0'
+                height =
+                        Math.round(
+                                dpToPx(
+                                        clockView.getContext(),
+                                        24
+                                )
+                        );
+            }
+
+            float radius =
+                    height / 2.0f;
+
+            GradientDrawable background =
+                    new GradientDrawable();
+
+            background.setColor(
+                    color
+            );
+
+            background.setCornerRadius(
+                    radius
+            );
+
+            /*
+             * 胶囊内部再设置一点左右空间。
+             */
+            int horizontalPadding =
+                    Math.round(
+                            dpToPx(
+                                    clockView.getContext(),
+                                    HORIZONTAL_PADDING_DP
+                            )
+                    );
+
+            int verticalPadding =
+                    Math.round(
+                            dpToPx(
+                                    clockView.getContext(),
+                                    VERTICAL_PADDING_DP
+                            )
+                    );
+
+            /*
+             * 保存 TextView 原有 padding
+             * 不太安全，因此这里只设置
+             * background 本身。
+             */
+            clockView.setBackground(
+                    background
+            );
+
+            /*
+             * 保证文字在胶囊内部。
+             */
+            clockView.setGravity(
+                    Gravity.CENTER
+            );
+
+        } catch (Throwable t) {
+
+            XposedBridge.log(
+                    TAG +
+                    ": 设置胶囊背景失败: " +
+                    t
             );
         }
+    }
 
-        return sb.toString();
+    private float dpToPx(
+            Context context,
+            float dp) {
+
+        return dp *
+                context.getResources()
+                        .getDisplayMetrics()
+                        .density;
+    }
+
+    private int readBackgroundColor() {
+
+        try {
+
+            File f =
+                    new File(
+                            COLOR_FILE
+                    );
+
+            if (!f.exists()) {
+
+                return DEFAULT_BACKGROUND_COLOR;
+            }
+
+            BufferedReader br =
+                    new BufferedReader(
+                            new FileReader(f)
+                    );
+
+            String line =
+                    br.readLine();
+
+            br.close();
+
+            if (line == null) {
+
+                return DEFAULT_BACKGROUND_COLOR;
+            }
+
+            line =
+                    line.trim();
+
+            if (line.startsWith("#")) {
+
+                line =
+                        line.substring(1);
+            }
+
+            /*
+             * 支持：
+             *
+             * RRGGBB
+             * AARRGGBB
+             */
+            long value =
+                    Long.parseLong(
+                            line,
+                            16
+                    );
+
+            if (line.length() == 6) {
+
+                return (int)
+                        (0xFF000000L |
+                                value);
+            }
+
+            if (line.length() == 8) {
+
+                return (int) value;
+            }
+
+        } catch (Throwable ignored) {
+        }
+
+        return DEFAULT_BACKGROUND_COLOR;
     }
 
     private int readModeFromFile() {
@@ -642,6 +811,7 @@ public class MainHook implements IXposedHookLoadPackage {
                     );
 
             if (!f.exists()) {
+
                 return MODE_TIME_RAM;
             }
 
@@ -656,6 +826,7 @@ public class MainHook implements IXposedHookLoadPackage {
             br.close();
 
             if (line == null) {
+
                 return MODE_TIME_RAM;
             }
 
@@ -666,49 +837,6 @@ public class MainHook implements IXposedHookLoadPackage {
         } catch (Throwable t) {
 
             return MODE_TIME_RAM;
-        }
-    }
-
-    /*
-     * 从文件读取背景颜色。
-     *
-     * 如果文件不存在，
-     * 使用默认颜色。
-     */
-    private int readBackgroundColor() {
-
-        try {
-
-            File f =
-                    new File(
-                            COLOR_FILE
-                    );
-
-            if (!f.exists()) {
-                return DEFAULT_BACKGROUND_COLOR;
-            }
-
-            BufferedReader br =
-                    new BufferedReader(
-                            new FileReader(f)
-                    );
-
-            String line =
-                    br.readLine();
-
-            br.close();
-
-            if (line == null) {
-                return DEFAULT_BACKGROUND_COLOR;
-            }
-
-            return Integer.parseInt(
-                    line.trim()
-            );
-
-        } catch (Throwable t) {
-
-            return DEFAULT_BACKGROUND_COLOR;
         }
     }
 
@@ -724,9 +852,7 @@ public class MainHook implements IXposedHookLoadPackage {
         ActivityManager.MemoryInfo info =
                 new ActivityManager.MemoryInfo();
 
-        am.getMemoryInfo(
-                info
-        );
+        am.getMemoryInfo(info);
 
         double availGb =
                 info.availMem
@@ -778,6 +904,7 @@ public class MainHook implements IXposedHookLoadPackage {
                 tryReadCpuPercent();
 
         if (percent != null) {
+
             mLastCpuPercent =
                     percent;
         }
@@ -785,8 +912,7 @@ public class MainHook implements IXposedHookLoadPackage {
         String percentPart =
                 mLastCpuPercent == null
                         ? "N/A"
-                        : mLastCpuPercent
-                                + "%";
+                        : mLastCpuPercent + "%";
 
         if (mCpuTempZones == null) {
 
@@ -802,6 +928,7 @@ public class MainHook implements IXposedHookLoadPackage {
                 );
 
         if (tempC != null) {
+
             mLastCpuTempC =
                     tempC;
         }
@@ -830,6 +957,7 @@ public class MainHook implements IXposedHookLoadPackage {
                     );
 
             if (!f.exists()) {
+
                 return null;
             }
 
@@ -844,6 +972,7 @@ public class MainHook implements IXposedHookLoadPackage {
             br.close();
 
             if (line == null) {
+
                 return null;
             }
 
@@ -863,6 +992,7 @@ public class MainHook implements IXposedHookLoadPackage {
                 tryReadGpuPercentRaw();
 
         if (percent != null) {
+
             mLastGpuPercent =
                     percent;
         }
@@ -870,8 +1000,7 @@ public class MainHook implements IXposedHookLoadPackage {
         String percentPart =
                 mLastGpuPercent == null
                         ? "N/A"
-                        : mLastGpuPercent
-                                + "%";
+                        : mLastGpuPercent + "%";
 
         if (mGpuTempZones == null) {
 
@@ -887,6 +1016,7 @@ public class MainHook implements IXposedHookLoadPackage {
                 );
 
         if (tempC != null) {
+
             mLastGpuTempC =
                     tempC;
         }
@@ -922,14 +1052,14 @@ public class MainHook implements IXposedHookLoadPackage {
                     thermalDir.listFiles();
 
             if (zones == null) {
+
                 return result;
             }
 
             for (File zoneDir :
                     zones) {
 
-                if (!zoneDir
-                        .getName()
+                if (!zoneDir.getName()
                         .startsWith(
                                 "thermal_zone"
                         )) {
@@ -958,6 +1088,7 @@ public class MainHook implements IXposedHookLoadPackage {
                     br.close();
 
                     if (type == null) {
+
                         continue;
                     }
 
@@ -994,11 +1125,11 @@ public class MainHook implements IXposedHookLoadPackage {
     private Double getMaxTempCelsius(
             List<File> tempFiles) {
 
-        Double max = null;
-
         if (tempFiles == null) {
             return null;
         }
+
+        Double max = null;
 
         for (File f :
                 tempFiles) {
@@ -1016,6 +1147,7 @@ public class MainHook implements IXposedHookLoadPackage {
                 br.close();
 
                 if (line == null) {
+
                     continue;
                 }
 
@@ -1044,16 +1176,16 @@ public class MainHook implements IXposedHookLoadPackage {
 
         Integer percent =
                 tryReadPercentageFile(
-                        "/sys/class/kgsl/kgsl-3d0/"
-                                + "gpu_busy_percentage"
+                        "/sys/class/kgsl/kgsl-3d0/" +
+                        "gpu_busy_percentage"
                 );
 
         if (percent == null) {
 
             percent =
                     tryReadBusyRatioFile(
-                            "/sys/class/kgsl/kgsl-3d0/"
-                                    + "gpubusy"
+                            "/sys/class/kgsl/kgsl-3d0/" +
+                            "gpubusy"
                     );
         }
 
@@ -1061,8 +1193,8 @@ public class MainHook implements IXposedHookLoadPackage {
 
             percent =
                     tryReadPercentageFile(
-                            "/sys/class/misc/mali0/"
-                                    + "device/utilization"
+                            "/sys/class/misc/mali0/" +
+                            "device/utilization"
                     );
         }
 
@@ -1070,8 +1202,8 @@ public class MainHook implements IXposedHookLoadPackage {
 
             percent =
                     tryReadPercentageFile(
-                            "/sys/devices/platform/"
-                                    + "mali.0/utilization"
+                            "/sys/devices/platform/" +
+                            "mali.0/utilization"
                     );
         }
 
@@ -1087,6 +1219,7 @@ public class MainHook implements IXposedHookLoadPackage {
                     new File(path);
 
             if (!f.exists()) {
+
                 return null;
             }
 
@@ -1101,6 +1234,7 @@ public class MainHook implements IXposedHookLoadPackage {
             br.close();
 
             if (line == null) {
+
                 return null;
             }
 
@@ -1112,6 +1246,7 @@ public class MainHook implements IXposedHookLoadPackage {
                             );
 
             if (numeric.isEmpty()) {
+
                 return null;
             }
 
@@ -1140,6 +1275,7 @@ public class MainHook implements IXposedHookLoadPackage {
                     new File(path);
 
             if (!f.exists()) {
+
                 return null;
             }
 
@@ -1154,6 +1290,7 @@ public class MainHook implements IXposedHookLoadPackage {
             br.close();
 
             if (line == null) {
+
                 return null;
             }
 
@@ -1162,6 +1299,7 @@ public class MainHook implements IXposedHookLoadPackage {
                             .split("\\s+");
 
             if (parts.length < 2) {
+
                 return null;
             }
 
@@ -1176,13 +1314,14 @@ public class MainHook implements IXposedHookLoadPackage {
                     );
 
             if (total <= 0) {
+
                 return null;
             }
 
             return (int)
                     Math.round(
                             busy * 100.0 /
-                                    total
+                            total
                     );
 
         } catch (Throwable t) {
