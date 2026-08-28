@@ -54,6 +54,10 @@ public class ColorSettingsActivity extends Activity {
             0xFFF44336
     };
 
+    private static final int COLOR_WHITE = 0xFFFFFFFF;
+    private static final int COLOR_NAV_BG = 0xB31C1C1E;
+    private static final int COLOR_NAV_BORDER = 0x40FFFFFF;
+
     private boolean mEnglish;
     private int mSelectedColor;
     private TextView mPreview;
@@ -171,6 +175,11 @@ public class ColorSettingsActivity extends Activity {
                         : "选择颜色"
         );
         pickButton.setAllCaps(false);
+        pickButton.setTextColor(COLOR_WHITE);
+        pickButton.setBackground(createGlassButtonBg(density));
+        pickButton.setPadding(
+                Math.round(24 * density), Math.round(14 * density),
+                Math.round(24 * density), Math.round(14 * density));
         pickButton.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
@@ -198,6 +207,11 @@ public class ColorSettingsActivity extends Activity {
                         : "透明"
         );
         transparentButton.setAllCaps(false);
+        transparentButton.setTextColor(COLOR_WHITE);
+        transparentButton.setBackground(createGlassButtonBg(density));
+        transparentButton.setPadding(
+                Math.round(24 * density), Math.round(14 * density),
+                Math.round(24 * density), Math.round(14 * density));
         transparentButton.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
@@ -249,6 +263,11 @@ public class ColorSettingsActivity extends Activity {
                         : "返回"
         );
         backButton.setAllCaps(false);
+        backButton.setTextColor(COLOR_WHITE);
+        backButton.setBackground(createGlassButtonBg(density));
+        backButton.setPadding(
+                Math.round(24 * density), Math.round(14 * density),
+                Math.round(24 * density), Math.round(14 * density));
         backButton.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
@@ -270,6 +289,14 @@ public class ColorSettingsActivity extends Activity {
                 backParams
         );
         setContentView(root);
+    }
+
+    private GradientDrawable createGlassButtonBg(float density) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(COLOR_NAV_BG);
+        bg.setCornerRadius(Math.round(28 * density));
+        bg.setStroke(Math.round(1 * density), COLOR_NAV_BORDER);
+        return bg;
     }
 
     /*
