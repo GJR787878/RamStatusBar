@@ -1157,11 +1157,27 @@ public class ColorSettingsActivity extends Activity {
         }
 
         int getColor() {
+            /*
+             * 与 onDraw 的亮度遮罩保持一致：
+             * 遮罩最多压暗 50%（dim = (1-mValue)*128），
+             * 因此取色时也把亮度映射到 [~0.5, 1]，
+             * 避免亮度滑块拉低时选中纯黑（所见即所得）。
+             */
+            float effValue;
+            if (mValue >= 1f) {
+                effValue = 1f;
+            } else {
+                effValue =
+                        (127f
+                                + 128f
+                                * mValue)
+                                / 255f;
+            }
             return Color.HSVToColor(
                     new float[]{
                             mHue,
                             mSat,
-                            mValue
+                            effValue
                     }
             );
         }
