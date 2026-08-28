@@ -23,9 +23,9 @@
 
 ## 📖 项目介绍 / Introduction
 
-`RamStatusBar` 是一个基于 **LSPosed / Xposed** 框架的 Android 系统 UI 定制模块。它接管状态栏的时钟区域，在原本只显示时间的地方，额外显示**已用 / 总内存**（例如 `2.5G/8G`），并支持通过点击时钟快速查看 **CPU / GPU 占用率与温度**。
+`RamStatusBar` 是一个基于 **LSPosed / Xposed** 框架的 Android 系统 UI 定制模块。它接管状态栏的时钟区域，在原本只显示时间的地方，额外显示**可用 / 总内存**（例如 `2.5G/8G`），并支持通过点击时钟快速查看 **CPU / GPU 占用率与温度**。
 
-`RamStatusBar` is an Android SystemUI customization module based on the **LSPosed / Xposed** framework. It takes over the status bar clock area, showing the **used / total RAM** (e.g. `2.5G/8G`) in addition to the time, and lets you quickly check **CPU / GPU usage & temperature** by tapping the clock.
+`RamStatusBar` is an Android SystemUI customization module based on the **LSPosed / Xposed** framework. It takes over the status bar clock area, showing the **available / total RAM** (e.g. `2.5G/8G`) in addition to the time, and lets you quickly check **CPU / GPU usage & temperature** by tapping the clock.
 
 - **无需修改系统**：纯 Hook 方案，通过 Xposed 框架注入 SystemUI
   *No system modification: pure Hook approach, injected into SystemUI via the Xposed framework.*
@@ -49,11 +49,11 @@ Switch between modes in-app with one tap — takes effect in ~1 second, no reboo
 | 模式 / Mode | 效果 / Effect | 示例 / Example |
 |------|------|------|
 | **仅时间** / Time only | 只显示当前时间（还原原生时钟）<br>Shows the time only (native clock) | `21:11` |
-| **时间 + 内存** / Time + RAM | 时间 + 已用/总内存（默认）<br>Time + used/total RAM (default) | `21:11 2.5G/8G` |
+| **时间 + 内存** / Time + RAM | 时间 + 可用/总内存（默认）<br>Time + available/total RAM (default) | `21:11 2.5G/8G` |
 | **仅内存** / RAM only | 只显示内存占用<br>Shows RAM usage only | `2.5G/8G` |
 
-- 已用内存实时刷新（约每秒一次）
-  Used RAM refreshes in real time (~every second).
+- 可用内存实时刷新（约每秒一次）
+  Available RAM refreshes in real time (~every second).
 - 总内存自动检测，并向上取整到最接近的常见规格（8 / 12 / 16 / 24G 等）
   Total RAM is auto-detected and rounded up to the nearest common spec (8 / 12 / 16 / 24G, etc.).
 
@@ -71,8 +71,8 @@ Tap the status bar clock text:
 - **10 秒内无操作** → 自动回到正常显示
   *No touch for 10s* → automatically returns to normal
 
-> GPU 占用依赖芯片私有接口（KGSL / Mali sysfs 路径），部分设备可能显示 `GPU N/A`，能否读取取决于芯片型号（骁龙 778G 等可正常读取）。
-> GPU usage relies on chip-specific interfaces (KGSL / Mali sysfs paths). Some devices may show `GPU N/A` — readability depends on the chipset (Snapdragon 778G etc. work fine).
+> GPU 占用依赖芯片私有接口（KGSL / Mali sysfs 路径），部分设备可能显示 `GPU N/A`，能否读取取决于芯片型号。
+> GPU usage relies on chip-specific interfaces (KGSL / Mali sysfs paths). Some devices may show `GPU N/A` — readability depends on the chipset.
 
 ### 3. 深度休眠统计 / Deep Sleep Stats
 
@@ -158,7 +158,7 @@ The repo is configured with **GitHub Actions** — every push to `main` automati
 | 模块 / Module | 说明 / Description |
 |------|------|
 | **MainHook** | Hook `com.android.systemui.statusbar.policy.Clock`，接管时钟显示并注入内存/CPU/GPU逻辑<br>Hooks the Clock to take over the display and inject RAM/CPU/GPU logic |
-| **内存读取** / RAM | `ActivityManager.getMemoryInfo()` 获取已用/总内存<br>Gets used/total RAM via `ActivityManager.getMemoryInfo()` |
+| **内存读取** / RAM | `ActivityManager.getMemoryInfo()` 获取可用/总内存<br>Gets available/total RAM via `ActivityManager.getMemoryInfo()` |
 | **CPU 占用** / CPU | 读取 `/data/local/tmp/ramstatusbar_cpu`（由外部脚本写入）<br>Reads `/data/local/tmp/ramstatusbar_cpu` (written by an external script) |
 | **GPU 占用** / GPU | 读取 KGSL / Mali 的 sysfs 接口（`gpu_busy_percentage` / `gpubusy` / `utilization` 等）<br>Reads KGSL / Mali sysfs interfaces (`gpu_busy_percentage` / `gpubusy` / `utilization`, etc.) |
 | **温度** / Temp | 扫描 `/sys/class/thermal` 下的 `cpuss-*` / `gpuss-*` 热区<br>Scans `cpuss-*` / `gpuss-*` thermal zones under `/sys/class/thermal` |
