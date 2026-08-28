@@ -14,6 +14,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.DataOutputStream;
+import java.util.Locale;
 
 public class ColorSettingsActivity extends Activity {
 
