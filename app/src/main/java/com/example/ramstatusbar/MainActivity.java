@@ -232,20 +232,12 @@ public class MainActivity extends Activity {
         final RadioGroup radioGroup = new RadioGroup(this);
         radioGroup.setOrientation(RadioGroup.VERTICAL);
 
-        final RadioButton rbTimeOnly = new RadioButton(this);
-        rbTimeOnly.setId(1001);
-        rbTimeOnly.setTextColor(COLOR_WHITE);
-        rbTimeOnly.setText(mEnglish ? "Time only" : "仅显示时间");
-
-        final RadioButton rbTimeRam = new RadioButton(this);
-        rbTimeRam.setId(1002);
-        rbTimeRam.setTextColor(COLOR_WHITE);
-        rbTimeRam.setText(mEnglish ? "Time + RAM (e.g. 21:11 2.5G/8G)" : "时间 + 内存 (如 21:11 2.5G/8G)");
-
-        final RadioButton rbRamOnly = new RadioButton(this);
-        rbRamOnly.setId(1003);
-        rbRamOnly.setTextColor(COLOR_WHITE);
-        rbRamOnly.setText(mEnglish ? "RAM only (e.g. 2.5G/8G)" : "仅显示内存 (如 2.5G/8G)");
+        final RadioButton rbTimeOnly = createModeRadioButton(
+                1001, mEnglish ? "Time only" : "仅显示时间", density);
+        final RadioButton rbTimeRam = createModeRadioButton(
+                1002, mEnglish ? "Time + RAM (e.g. 21:11 2.5G/8G)" : "时间 + 内存 (如 21:11 2.5G/8G)", density);
+        final RadioButton rbRamOnly = createModeRadioButton(
+                1003, mEnglish ? "RAM only (e.g. 2.5G/8G)" : "仅显示内存 (如 2.5G/8G)", density);
 
         radioGroup.addView(rbTimeOnly);
         radioGroup.addView(rbTimeRam);
@@ -258,10 +250,12 @@ public class MainActivity extends Activity {
         } else {
             radioGroup.check(rbTimeRam.getId());
         }
+        updateModeButtonStyles(density, radioGroup, rbTimeOnly, rbTimeRam, rbRamOnly);
 
         radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup group, int checkedId) {
+                updateModeButtonStyles(density, radioGroup, rbTimeOnly, rbTimeRam, rbRamOnly);
                 int mode;
                 if (checkedId == rbTimeOnly.getId()) {
                     mode = MODE_TIME_ONLY;
@@ -487,6 +481,44 @@ public class MainActivity extends Activity {
         bg.setCornerRadius(Math.round(28 * density));
         bg.setStroke(Math.round(1 * density), COLOR_NAV_BORDER);
         return bg;
+    }
+
+    private RadioButton createModeRadioButton(int id, String text, float density) {
+        RadioButton rb = new RadioButton(this);
+        rb.setId(id);
+        rb.setText(text);
+        rb.setTextColor(COLOR_WHITE);
+        rb.setTextSize(14);
+        rb.setGravity(Gravity.CENTER_VERTICAL);
+        rb.setButtonDrawable(null);
+        rb.setPadding(
+                Math.round(24 * density), Math.round(16 * density),
+                Math.round(24 * density), Math.round(16 * density));
+        rb.setBackground(createGlassButtonBg(density));
+        RadioGroup.LayoutParams params = new RadioGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.topMargin = Math.round(12 * density);
+        rb.setLayoutParams(params);
+        return rb;
+    }
+
+    private void updateModeButtonStyles(float density, RadioGroup group,
+                                        RadioButton... buttons) {
+        for (RadioButton rb : buttons) {
+            boolean selected = (group.getCheckedRadioButtonId() == rb.getId());
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(COLOR_NAV_BG);
+            bg.setCornerRadius(Math.round(28 * density));
+            if (selected) {
+                bg.setStroke(Math.round(2 * density), COLOR_WHITE);
+                rb.setTextColor(COLOR_ACCENT);
+            } else {
+                bg.setStroke(Math.round(1 * density), COLOR_NAV_BORDER);
+                rb.setTextColor(COLOR_WHITE);
+            }
+            rb.setBackground(bg);
+        }
     }
 
     private View createNavItem(int iconRes, String label, float density) {
