@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.TextView;
 
@@ -229,6 +230,33 @@ public class MainHook
          * 清除 SystemUI 原来的背景。
          */
         clockView.setBackground(null);
+
+        /*
+         * 文字在固定宽度背景内水平+垂直居中，
+         * 保证任何模式、任何数字宽度下都居中不溢出。
+         */
+        clockView.setGravity(Gravity.CENTER);
+
+        /*
+         * 关闭字体行高自带 padding，
+         * 让垂直居中更精确（避免文字视觉上偏上）。
+         */
+        clockView.setIncludeFontPadding(false);
+
+        /*
+         * 清零自带 padding，
+         * 让居中完全以背景(整个 View)为基准，
+         * 避免水平/垂直内边距把文字挤偏。
+         */
+        clockView.setPadding(0, 0, 0, 0);
+
+        /*
+         * 强制单行、禁用省略号：
+         * 即便内容临时超宽也绝不换行/出框，
+         * 保证文字永远只在背景内水平居中。
+         */
+        clockView.setSingleLine(true);
+        clockView.setEllipsize(null);
 
         clockView.setClickable(true);
 
