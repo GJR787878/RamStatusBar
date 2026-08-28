@@ -2,7 +2,20 @@
 
 # RamStatusBar
 
-**LSPosed 模块：在 Android 状态栏时钟位置实时显示剩余内存，点击可循环查看 CPU / GPU 占用与温度，支持三种显示模式（仅时间 / 时间+内存 / 仅内存）、HSV 取色盘自定义胶囊背景颜色、深度休眠统计。纯 Hook 方案无需修改系统，切换模式约 1 秒生效。**
+**LSPosed 模块，在 Android 状态栏时钟位置实时显示剩余内存。**
+*An LSPosed module that shows remaining RAM on the Android status bar clock.*
+
+**点击可循环查看 CPU / GPU 占用与温度。**
+*Tap to cycle through CPU / GPU usage & temperature.*
+
+**支持三种显示模式：仅时间、时间 + 内存、仅内存。**
+*Three display modes: Time only, Time + RAM, RAM only.*
+
+**内置 HSV 取色盘，可自定义胶囊背景颜色，并附带深度休眠统计。**
+*Built-in HSV color picker for the capsule background, plus deep sleep stats.*
+
+**纯 Hook 方案，无需修改系统，切换模式约 1 秒生效。**
+*Pure Hook approach — no system modification, mode switch takes effect in ~1 second.*
 
 </div>
 
