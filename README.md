@@ -39,6 +39,23 @@
 
 ---
 
+## 📸 截图展示 / Screenshots
+
+<div align="center">
+
+**状态栏显示效果 / Status bar display**
+![Status bar](https://raw.githubusercontent.com/GJR787878/RamStatusBar/main/docs/images/screenshot_statusbar.png)
+
+**三种显示模式 / Three display modes (CPU · Time+RAM · GPU)**
+![Display modes](https://raw.githubusercontent.com/GJR787878/RamStatusBar/main/docs/images/screenshot_modes.png)
+
+**颜色设置界面 / Color picker**
+![Color picker](https://raw.githubusercontent.com/GJR787878/RamStatusBar/main/docs/images/screenshot_color_picker.png)
+
+</div>
+
+---
+
 ## ✨ 功能特性 / Features
 
 ### 1. 三种显示模式 / Three Display Modes
