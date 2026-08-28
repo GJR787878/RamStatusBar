@@ -2,7 +2,6 @@ package com.example.ramstatusbar;
 
 import android.app.ActivityManager;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Handler;
@@ -27,9 +26,11 @@ import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
-public class MainHook implements IXposedHookLoadPackage {
+public class MainHook
+        implements IXposedHookLoadPackage {
 
-    private static final String TAG = "RamStatusBar";
+    private static final String TAG =
+            "RamStatusBar";
 
     private static final String CLOCK_CLASS =
             "com.android.systemui.statusbar.policy.Clock";
@@ -40,11 +41,11 @@ public class MainHook implements IXposedHookLoadPackage {
     private static final String CPU_FILE =
             "/data/local/tmp/ramstatusbar_cpu";
 
-    private static final String UI_PREFS_NAME =
-            "ui_prefs";
-
-    private static final String KEY_BG_COLOR =
-            "background_color";
+    /*
+     * 和 ColorSettingsActivity 使用同一个文件。
+     */
+    private static final String COLOR_FILE =
+            "/data/local/tmp/ramstatusbar_color";
 
     private static final int MODE_TIME_ONLY = 0;
     private static final int MODE_TIME_RAM = 1;
@@ -54,36 +55,40 @@ public class MainHook implements IXposedHookLoadPackage {
     private static final int TAP_CPU = 1;
     private static final int TAP_GPU = 2;
 
-    private static final long AUTO_REVERT_MS = 10000;
-    private static final long UPDATE_INTERVAL_MS = 1000;
+    private static final long AUTO_REVERT_MS =
+            10000;
+
+    private static final long UPDATE_INTERVAL_MS =
+            1000;
 
     private static final int[] COMMON_RAM_TIERS_GB = {
             3, 4, 6, 8, 12, 16, 18, 24, 32
     };
 
     /*
-     * 胶囊左右内边距。
+     * 胶囊左右额外空间。
      *
-     * 这里使用半个字符作为基础余量，
-     * 让背景不会紧贴文字。
+     * 保留半个字符宽度的设计。
      */
-    private static final float CAPSULE_HORIZONTAL_PADDING_CHARS = 0.5f;
+    private static final float
+            CAPSULE_PADDING_CHARS = 0.5f;
 
     private Handler mHandler;
 
-    private final Map<TextView, SimpleDateFormat> mManaged =
-            new HashMap<>();
+    private final Map<TextView, SimpleDateFormat>
+            mManaged = new HashMap<>();
 
-    private final Map<TextView, Integer> mTapState =
-            new HashMap<>();
+    private final Map<TextView, Integer>
+            mTapState = new HashMap<>();
 
-    private final Map<TextView, Runnable> mRevertRunnables =
-            new HashMap<>();
+    private final Map<TextView, Runnable>
+            mRevertRunnables = new HashMap<>();
 
-    private final Map<TextView, Integer> mFixedWidthPx =
-            new HashMap<>();
+    private final Map<TextView, Integer>
+            mFixedWidthPx = new HashMap<>();
 
-    private boolean mApplyingOurText = false;
+    private boolean mApplyingOurText =
+            false;
 
     private Integer mLastCpuPercent = null;
     private Integer mLastGpuPercent = null;
@@ -97,6 +102,7 @@ public class MainHook implements IXposedHookLoadPackage {
     private Handler getHandler() {
 
         if (mHandler == null) {
+
             mHandler =
                     new Handler(
                             Looper.getMainLooper()
@@ -175,7 +181,8 @@ public class MainHook implements IXposedHookLoadPackage {
                                         (TextView)
                                                 param.thisObject;
 
-                                if (mManaged.containsKey(tv)) {
+                                if (mManaged.containsKey(
+                                        tv)) {
 
                                     applyDisplayNow(tv);
                                 }
@@ -219,9 +226,7 @@ public class MainHook implements IXposedHookLoadPackage {
         );
 
         /*
-         * 先清掉 SystemUI 原来的背景。
-         * 后面由我们自己的 GradientDrawable
-         * 绘制胶囊背景。
+         * 清除 SystemUI 原来的背景。
          */
         clockView.setBackground(null);
 
@@ -231,7 +236,8 @@ public class MainHook implements IXposedHookLoadPackage {
                 new View.OnClickListener() {
 
                     @Override
-                    public void onClick(View v) {
+                    public void onClick(
+                            View v) {
 
                         Integer cur =
                                 mTapState.get(
@@ -294,15 +300,17 @@ public class MainHook implements IXposedHookLoadPackage {
     private void scheduleAutoRevert(
             final TextView clockView) {
 
-        Runnable prev =
+        Runnable previous =
                 mRevertRunnables.remove(
                         clockView
                 );
 
-        if (prev != null) {
+        if (previous != null) {
 
             getHandler()
-                    .removeCallbacks(prev);
+                    .removeCallbacks(
+                            previous
+                    );
         }
 
         Runnable revert =
@@ -341,7 +349,9 @@ public class MainHook implements IXposedHookLoadPackage {
             TextView clockView) {
 
         SimpleDateFormat timeFormat =
-                mManaged.get(clockView);
+                mManaged.get(
+                        clockView
+                );
 
         if (timeFormat == null) {
             return;
@@ -358,19 +368,14 @@ public class MainHook implements IXposedHookLoadPackage {
                     );
 
             String ram =
-                    getRamInfo(context);
+                    getRamInfo(
+                            context
+                    );
 
-            String full =
+            String normalContent =
                     time
                             + " "
                             + ram;
-
-            /*
-             * 使用正常显示内容作为基础宽度。
-             */
-            float targetWidthPx =
-                    clockView.getPaint()
-                            .measureText(full);
 
             Integer tapState =
                     mTapState.get(
@@ -416,62 +421,73 @@ public class MainHook implements IXposedHookLoadPackage {
                     default:
 
                         rawContent =
-                                full;
+                                normalContent;
 
                         break;
                 }
             }
 
-            /*
-             * 如果 CPU/GPU 内容比正常内容更长，
-             * 胶囊宽度自动扩大。
-             */
-            float rawContentWidthPx =
+            float normalWidth =
+                    clockView.getPaint()
+                            .measureText(
+                                    normalContent
+                            );
+
+            float contentWidth =
                     clockView.getPaint()
                             .measureText(
                                     rawContent
                             );
 
-            float oneCharPx =
+            float oneCharWidth =
                     clockView.getPaint()
                             .measureText("0");
 
-            float horizontalPaddingPx =
-                    oneCharPx
-                            * CAPSULE_HORIZONTAL_PADDING_CHARS;
-
-            float neededWidthPx =
+            /*
+             * 保证当前 CPU/GPU 文字也有足够宽度。
+             */
+            float baseWidth =
                     Math.max(
-                            targetWidthPx,
-                            rawContentWidthPx
-                    )
-                            + horizontalPaddingPx * 2;
+                            normalWidth,
+                            contentWidth
+                    );
 
+            /*
+             * 胶囊左右增加半个字符。
+             */
+            float padding =
+                    oneCharWidth
+                            * CAPSULE_PADDING_CHARS;
+
+            float neededWidth =
+                    baseWidth
+                            + padding * 2;
+
+            /*
+             * 比以前的固定宽度少半个字符。
+             */
             ensureFixedWidth(
                     clockView,
-                    neededWidthPx
+                    neededWidth
             );
 
             /*
-             * 文字本身不再额外增加空格，
-             * 因为胶囊本身已经有左右内边距。
-             */
-            String display =
-                    rawContent;
-
-            /*
-             * 应用胶囊背景。
+             * 设置胶囊背景。
              */
             applyCapsuleBackground(
                     clockView
             );
 
+            /*
+             * 文字不额外添加 nbsp，
+             * 避免文字被人为撑长。
+             */
             mApplyingOurText = true;
 
             try {
 
                 clockView.setText(
-                        display
+                        rawContent
                 );
 
             } finally {
@@ -489,26 +505,80 @@ public class MainHook implements IXposedHookLoadPackage {
         }
     }
 
+    /*
+     * 从 /data/local/tmp/ramstatusbar_color
+     * 读取背景颜色。
+     */
+    private int readBackgroundColor() {
+
+        try {
+
+            File file =
+                    new File(
+                            COLOR_FILE
+                    );
+
+            if (!file.exists()) {
+
+                return 0xCC000000;
+            }
+
+            BufferedReader br =
+                    new BufferedReader(
+                            new FileReader(
+                                    file
+                            )
+                    );
+
+            String line =
+                    br.readLine();
+
+            br.close();
+
+            if (line == null) {
+
+                return 0xCC000000;
+            }
+
+            line =
+                    line.trim()
+                            .replace(
+                                    "#",
+                                    ""
+                            );
+
+            if (line.isEmpty()) {
+
+                return 0xCC000000;
+            }
+
+            long value =
+                    Long.parseLong(
+                            line,
+                            16
+                    );
+
+            return (int) value;
+
+        } catch (Throwable t) {
+
+            return 0xCC000000;
+        }
+    }
+
+    /*
+     * 创建胶囊背景。
+     */
     private void applyCapsuleBackground(
             TextView clockView) {
 
         try {
 
-            SharedPreferences prefs =
-                    clockView.getContext()
-                            .getSharedPreferences(
-                                    UI_PREFS_NAME,
-                                    Context.MODE_PRIVATE
-                            );
-
             int color =
-                    prefs.getInt(
-                            KEY_BG_COLOR,
-                            0xCC000000
-                    );
+                    readBackgroundColor();
 
             /*
-             * 如果选择透明，则恢复透明背景。
+             * 0x00000000 = 完全透明。
              */
             if (color == Color.TRANSPARENT) {
 
@@ -531,7 +601,8 @@ public class MainHook implements IXposedHookLoadPackage {
             );
 
             /*
-             * 极大的圆角会形成胶囊形。
+             * 极大圆角，
+             * 让矩形变成胶囊。
              */
             drawable.setCornerRadius(
                     10000f
@@ -556,10 +627,9 @@ public class MainHook implements IXposedHookLoadPackage {
                             .measureText("0");
 
             /*
-             * 比以前少半个字符的额外宽度。
-             *
-             * 现在主要由胶囊左右 padding
-             * 来提供视觉间距。
+             * 在需要宽度上增加左右空间，
+             * 然后减掉半个字符，
+             * 保留你之前要求的效果。
              */
             int desired =
                     Math.round(
@@ -568,6 +638,7 @@ public class MainHook implements IXposedHookLoadPackage {
                     );
 
             if (desired < 1) {
+
                 desired = 1;
             }
 
@@ -576,6 +647,12 @@ public class MainHook implements IXposedHookLoadPackage {
                             clockView
                     );
 
+            /*
+             * 宽度只扩大，不频繁缩小。
+             *
+             * 这样可以防止状态栏因为
+             * CPU/GPU 数字变化不断抖动。
+             */
             if (current != null
                     && desired <= current) {
 
@@ -655,7 +732,9 @@ public class MainHook implements IXposedHookLoadPackage {
         ActivityManager.MemoryInfo info =
                 new ActivityManager.MemoryInfo();
 
-        am.getMemoryInfo(info);
+        am.getMemoryInfo(
+                info
+        );
 
         double availGb =
                 info.availMem
@@ -715,7 +794,8 @@ public class MainHook implements IXposedHookLoadPackage {
         String percentPart =
                 mLastCpuPercent == null
                         ? "N/A"
-                        : mLastCpuPercent + "%";
+                        : mLastCpuPercent
+                                + "%";
 
         if (mCpuTempZones == null) {
 
@@ -803,7 +883,8 @@ public class MainHook implements IXposedHookLoadPackage {
         String percentPart =
                 mLastGpuPercent == null
                         ? "N/A"
-                        : mLastGpuPercent + "%";
+                        : mLastGpuPercent
+                                + "%";
 
         if (mGpuTempZones == null) {
 
@@ -930,6 +1011,7 @@ public class MainHook implements IXposedHookLoadPackage {
             List<File> tempFiles) {
 
         if (tempFiles == null) {
+
             return null;
         }
 
