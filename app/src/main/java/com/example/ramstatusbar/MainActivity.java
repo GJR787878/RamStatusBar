@@ -341,7 +341,10 @@ public class MainActivity extends Activity {
         colorButton.setText(mEnglish ? "Pick background color" : "选择背景颜色");
         colorButton.setAllCaps(false);
         colorButton.setTextColor(COLOR_WHITE);
-        colorButton.setBackgroundColor(0xFF2C2C2E);
+        colorButton.setBackground(createGlassButtonBg(density));
+        colorButton.setPadding(
+                Math.round(24 * density), Math.round(14 * density),
+                Math.round(24 * density), Math.round(14 * density));
         colorButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -366,7 +369,10 @@ public class MainActivity extends Activity {
         langButton.setText(mEnglish ? "Switch to 中文" : "Switch to English");
         langButton.setAllCaps(false);
         langButton.setTextColor(COLOR_WHITE);
-        langButton.setBackgroundColor(0xFF2C2C2E);
+        langButton.setBackground(createGlassButtonBg(density));
+        langButton.setPadding(
+                Math.round(24 * density), Math.round(14 * density),
+                Math.round(24 * density), Math.round(14 * density));
         langButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -427,7 +433,7 @@ public class MainActivity extends Activity {
 
         FrameLayout.LayoutParams navBarParams = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                Math.round(64 * density));
+                Math.round(76 * density));
         navWrapper.addView(navBar, navBarParams);
 
         // 三个导航项
@@ -475,15 +481,23 @@ public class MainActivity extends Activity {
         return navWrapper;
     }
 
+    private GradientDrawable createGlassButtonBg(float density) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(COLOR_NAV_BG);
+        bg.setCornerRadius(Math.round(28 * density));
+        bg.setStroke(Math.round(1 * density), COLOR_NAV_BORDER);
+        return bg;
+    }
+
     private View createNavItem(int iconRes, String label, float density) {
         LinearLayout item = new LinearLayout(this);
         item.setOrientation(LinearLayout.VERTICAL);
         item.setGravity(Gravity.CENTER);
         item.setPadding(
                 Math.round(4 * density),
-                Math.round(6 * density),
                 Math.round(4 * density),
-                Math.round(6 * density)
+                Math.round(4 * density),
+                Math.round(4 * density)
         );
 
         ImageView icon = new ImageView(this);
