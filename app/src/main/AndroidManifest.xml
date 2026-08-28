@@ -23,6 +23,19 @@
             android:name=".ColorSettingsActivity"
             android:exported="false" />
 
+        <!-- LSPosed / Xposed 模块声明 -->
+        <meta-data
+            android:name="xposedmodule"
+            android:value="true" />
+
+        <meta-data
+            android:name="xposeddescription"
+            android:value="RAM Status Bar" />
+
+        <meta-data
+            android:name="xposedminversion"
+            android:value="93" />
+
     </application>
 
 </manifest>
