@@ -735,17 +735,31 @@ public class ColorSettingsActivity extends Activity {
                 == 0) {
             startColor = 0xCC000000;
         }
-        dialogColor[0] =
-                startColor;
-        setPanelColor(
-                currentPanel,
-                mSelectedColor
-        );
         float[] startHsv =
                 new float[3];
         Color.colorToHSV(
                 startColor,
                 startHsv
+        );
+        /*
+         * 如果起始颜色太暗（几乎纯黑），
+         * 把亮度提到最亮，让取色盘一打开就是鲜艳的。
+         */
+        if (startHsv[2] < 0.2f) {
+            startHsv[2] = 1f;
+            startColor =
+                    Color.HSVToColor(
+                            Color.alpha(
+                                    startColor
+                            ),
+                            startHsv
+                    );
+        }
+        dialogColor[0] =
+                startColor;
+        setPanelColor(
+                currentPanel,
+                mSelectedColor
         );
         wheel.setColor(
                 startColor
@@ -1274,32 +1288,40 @@ public class ColorSettingsActivity extends Activity {
             }
             /*
              * 亮度遮罩。
+             *
+             * 最多压暗 50%，保证取色盘在任何亮度下
+             * 都能看到颜色，不会整个变黑。
              */
             if (mValue < 1f) {
-                mPaint.setColor(
-                        Color.argb(
-                                Math.round(
-                                        (1f
-                                                - mValue)
-                                                * 255f
-                                ),
-                                0,
-                                0,
-                                0
-                        )
-                );
-                mPaint.setStyle(
-                        Paint.Style.FILL
-                );
-                canvas.drawCircle(
-                        mCenterX,
-                        mCenterY,
-                        mRadius,
-                        mPaint
-                );
+                int dim =
+                        Math.round(
+                                (1f
+                                        - mValue)
+                                        * 128f
+                        );
+                if (dim > 0) {
+                    mPaint.setColor(
+                            Color.argb(
+                                    dim,
+                                    0,
+                                    0,
+                                    0
+                            )
+                    );
+                    mPaint.setStyle(
+                            Paint.Style.FILL
+                    );
+                    canvas.drawCircle(
+                            mCenterX,
+                            mCenterY,
+                            mRadius,
+                            mPaint
+                    );
+                }
             }
             /*
-             * 选择点。
+             * 选择点：深色外圈 + 白色内圈，
+             * 保证在亮色区域也看得见。
              */
             double angle =
                     Math.toRadians(
@@ -1316,13 +1338,35 @@ public class ColorSettingsActivity extends Activity {
                     mCenterY
                             + (float) (Math.sin(angle)
                             * selectorRadius);
+            float selectorDensity =
+                    getResources()
+                            .getDisplayMetrics()
+                            .density;
+            mSelectorPaint.setStyle(
+                    Paint.Style.STROKE
+            );
+            mSelectorPaint.setStrokeWidth(
+                    2 * selectorDensity
+            );
+            mSelectorPaint.setColor(
+                    0xCC000000
+            );
             canvas.drawCircle(
                     sx,
                     sy,
-                    12
-                            * getResources()
-                            .getDisplayMetrics()
-                            .density,
+                    13 * selectorDensity,
+                    mSelectorPaint
+            );
+            mSelectorPaint.setStrokeWidth(
+                    3 * selectorDensity
+            );
+            mSelectorPaint.setColor(
+                    Color.WHITE
+            );
+            canvas.drawCircle(
+                    sx,
+                    sy,
+                    10 * selectorDensity,
                     mSelectorPaint
             );
         }
