@@ -3,6 +3,7 @@ name: Build APK
 on:
   push:
     branches: [ main, master ]
+    tags: [ 'v*' ]
   workflow_dispatch:
 
 jobs:
@@ -36,3 +37,24 @@ jobs:
         with:
           name: RamStatusBar-debug-apk
           path: app/build/outputs/apk/debug/*.apk
+
+      # ========== 仅当打 tag (v*) 时：自动发布 Release ==========
+      - name: Package APK into ZIP (tag only)
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk ./release-app-debug.apk
+          zip RamStatusBar-debug-apk.zip release-app-debug.apk
+          ls -la release-app-debug.apk RamStatusBar-debug-apk.zip
+
+      - name: Create GitHub Release (tag only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: RamStatusBar ${{ github.ref_name }}
+          body_path: .github/RELEASE_BODY.md
+          files: |
+            release-app-debug.apk
+            RamStatusBar-debug-apk.zip
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
