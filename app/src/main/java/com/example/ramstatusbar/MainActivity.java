@@ -118,6 +118,7 @@ public class MainActivity extends Activity {
         root.addView(bottomNav, navParams);
 
         setContentView(root);
+        setTitle(lang("RAM 状态栏显示", "RAM Status Bar", "RAM Статус-бар"));
         switchTab(TAB_HOME);
     }
 
