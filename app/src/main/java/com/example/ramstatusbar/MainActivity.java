@@ -1,7 +1,6 @@
 package com.example.ramstatusbar;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.PorterDuff;
@@ -79,12 +78,6 @@ public class MainActivity extends Activity {
         return zh;
     }
 
-    private String currentLanguageName() {
-        if (LANG_RU.equals(mLanguage)) return "Русский";
-        if (LANG_EN.equals(mLanguage)) return "English";
-        return "中文";
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -134,7 +127,7 @@ public class MainActivity extends Activity {
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(
-                Math.round(48 * density), Math.round(96 * density),
+                Math.round(48 * density), Math.round(40 * density),
                 Math.round(48 * density), Math.round(140 * density));
 
         TextView title = new TextView(this);
@@ -206,7 +199,7 @@ public class MainActivity extends Activity {
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(
-                Math.round(48 * density), Math.round(96 * density),
+                Math.round(48 * density), Math.round(40 * density),
                 Math.round(48 * density), Math.round(140 * density));
 
         TextView title = new TextView(this);
@@ -313,7 +306,7 @@ public class MainActivity extends Activity {
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(
-                Math.round(48 * density), Math.round(96 * density),
+                Math.round(48 * density), Math.round(40 * density),
                 Math.round(48 * density), Math.round(140 * density));
 
         TextView title = new TextView(this);
@@ -355,23 +348,47 @@ public class MainActivity extends Activity {
         langLabel.setText(lang("语言", "Language", "Язык"));
         content.addView(langLabel);
 
-        Button langButton = new Button(this);
-        langButton.setText(currentLanguageName());
-        langButton.setAllCaps(false);
-        langButton.setTextColor(COLOR_WHITE);
-        langButton.setBackground(createGlassButtonBg(density));
-        langButton.setPadding(
-                Math.round(24 * density), Math.round(14 * density),
-                Math.round(24 * density), Math.round(14 * density));
-        langButton.setOnClickListener(new View.OnClickListener() {
+        final RadioGroup langGroup = new RadioGroup(this);
+        langGroup.setOrientation(RadioGroup.VERTICAL);
+
+        final RadioButton rbZh = createModeRadioButton(2001, "中文", density);
+        final RadioButton rbEn = createModeRadioButton(2002, "English", density);
+        final RadioButton rbRu = createModeRadioButton(2003, "Русский", density);
+
+        langGroup.addView(rbZh);
+        langGroup.addView(rbEn);
+        langGroup.addView(rbRu);
+
+        if (LANG_ZH.equals(mLanguage)) {
+            langGroup.check(rbZh.getId());
+        } else if (LANG_RU.equals(mLanguage)) {
+            langGroup.check(rbRu.getId());
+        } else {
+            langGroup.check(rbEn.getId());
+        }
+        updateModeButtonStyles(density, langGroup, rbZh, rbEn, rbRu);
+
+        langGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
-            public void onClick(View v) {
-                showLanguagePicker();
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                updateModeButtonStyles(density, langGroup, rbZh, rbEn, rbRu);
+                String newLang;
+                if (checkedId == rbZh.getId()) {
+                    newLang = LANG_ZH;
+                } else if (checkedId == rbRu.getId()) {
+                    newLang = LANG_RU;
+                } else {
+                    newLang = LANG_EN;
+                }
+                if (!newLang.equals(mLanguage)) {
+                    getSharedPreferences(UI_PREFS_NAME, MODE_PRIVATE)
+                            .edit().putString(KEY_LANGUAGE, newLang).apply();
+                    recreate();
+                }
             }
         });
-        content.addView(langButton, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        content.addView(langGroup);
 
         TextView aboutLabel = new TextView(this);
         aboutLabel.setTextSize(15);
@@ -393,36 +410,6 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         return scrollView;
-    }
-
-    // ==================== 语言选择对话框 ====================
-    private void showLanguagePicker() {
-        final String[] langNames = {"中文", "English", "Русский"};
-        final String[] langCodes = {LANG_ZH, LANG_EN, LANG_RU};
-        int currentIndex = 0;
-        for (int i = 0; i < langCodes.length; i++) {
-            if (langCodes[i].equals(mLanguage)) {
-                currentIndex = i;
-                break;
-            }
-        }
-        new AlertDialog.Builder(this)
-                .setTitle(lang("选择语言", "Select Language", "Выберите язык"))
-                .setSingleChoiceItems(langNames, currentIndex, null)
-                .setPositiveButton(lang("确定", "OK", "ОК"),
-                        (dialog, which) -> {
-                            int idx = ((AlertDialog) dialog).getListView().getCheckedItemPosition();
-                            if (idx >= 0 && idx < langCodes.length) {
-                                String newLang = langCodes[idx];
-                                if (!newLang.equals(mLanguage)) {
-                                    getSharedPreferences(UI_PREFS_NAME, MODE_PRIVATE)
-                                            .edit().putString(KEY_LANGUAGE, newLang).apply();
-                                    recreate();
-                                }
-                            }
-                        })
-                .setNegativeButton(lang("取消", "Cancel", "Отмена"), null)
-                .show();
     }
 
     // ==================== 底部导航栏 ====================
