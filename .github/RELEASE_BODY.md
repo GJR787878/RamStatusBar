@@ -28,6 +28,10 @@
   *Customizable background: built-in HSV color picker with brightness & opacity sliders*
 - **深度休眠统计**：直接显示开机以来的休眠时长与占比
   *Deep sleep stats: shows deep sleep duration & ratio since boot*
+- **三页底部导航**：主页 / 配置 / 设置，玻璃质感 UI
+  *Three-tab bottom nav: Home / Config / Settings, glassmorphism UI*
+- **多语言**：中文 / English / Русский 一键切换
+  *Multilingual: 中文 / English / Русский, switch in one tap*
 
 ---
 

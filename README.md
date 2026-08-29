@@ -14,6 +14,12 @@
 **内置 HSV 取色盘，可自定义胶囊背景颜色，并附带深度休眠统计。**
 *Built-in HSV color picker for the capsule background, plus deep sleep stats.*
 
+**三页底部导航：主页 / 配置 / 设置，玻璃质感 UI。**
+*Three-tab bottom navigation: Home / Config / Settings, with glassmorphism UI.*
+
+**支持中文 / English / Русский 三种语言。**
+*Supports three languages: 中文 / English / Русский.*
+
 **纯 Hook 方案，无需修改系统，切换模式约 1 秒生效。**
 *Pure Hook approach — no system modification, mode switch takes effect in ~1 second.*
 
@@ -33,6 +39,10 @@
   *Instant effect: switching display modes takes effect within ~1 second, no reboot needed.*
 - **所见即所得**：内置 HSV 取色盘，可自由定制状态栏胶囊的背景颜色、亮度与透明度
   *WYSIWYG: built-in HSV color picker to freely customize the capsule background color, brightness and transparency.*
+- **三页底部导航**：主页（介绍 + 深度休眠）、配置（显示模式）、设置（背景颜色 + 语言），玻璃质感 UI
+  *Three-tab bottom nav: Home (intro + deep sleep), Config (display modes), Settings (background + language), with glassmorphism UI.*
+- **多语言支持**：内置中文 / English / Русский 三种语言，设置页一键切换
+  *Multilingual: built-in 中文 / English / Русский, switchable from the Settings page.*
 
 > ⚠️ 需要 **Root** 权限 + **LSPosed / Vector Manager** 环境。
 > ⚠️ Requires **Root** access + **LSPosed / Vector Manager** environment.
