@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace 'com.example.ramstatusbar'
+    namespace 'io.github.gjr787878.ramstatusbar'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.example.ramstatusbar"
+        applicationId "io.github.gjr787878.ramstatusbar"
         minSdk 26
         targetSdk 34
         versionCode 1
@@ -27,7 +27,7 @@ android {
 }
 
 dependencies {
-    // Xposed API — only needed at compile time, provided by LSPosed/Vector at runtime
+    // Xposed API – only needed at compile time, provided by LSPosed/Vector at runtime
     compileOnly 'de.robv.android.xposed:api:82'
     compileOnly 'de.robv.android.xposed:api:82:sources'
 }
