@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace 'io.github.gjr787878.ramstatusbar'
+    namespace 'com.example.ramstatusbar'
     compileSdk 34
 
     defaultConfig {
