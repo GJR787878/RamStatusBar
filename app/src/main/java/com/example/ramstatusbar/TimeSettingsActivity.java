@@ -128,15 +128,17 @@ public class TimeSettingsActivity extends Activity {
     }
 
     // 把时间设置写入配置文件，MainHook 会读取此文件
+    // 使用简单的key=value格式，避免JSON解析问题
     private void saveTimeConfig() {
         try {
-            String json = "{\"autoSync\":" + mAutoSync
-                    + ",\"timeZone\":\"" + mTimeZoneId + "\""
-                    + ",\"customTime\":" + mCustomTime
-                    + ",\"syncTimeBase\":" + mSyncTimeBase
-                    + ",\"syncElapsedRealtime\":" + mSyncElapsedRealtime + "}";
+            StringBuilder sb = new StringBuilder();
+            sb.append("autoSync=").append(mAutoSync).append("\n");
+            sb.append("timeZone=").append(mTimeZoneId).append("\n");
+            sb.append("customTime=").append(mCustomTime).append("\n");
+            sb.append("syncTimeBase=").append(mSyncTimeBase).append("\n");
+            sb.append("syncElapsedRealtime=").append(mSyncElapsedRealtime).append("\n");
             java.io.FileWriter writer = new java.io.FileWriter(TIME_CONFIG_FILE);
-            writer.write(json);
+            writer.write(sb.toString());
             writer.close();
         } catch (Throwable t) {
             // 写入失败时静默处理，SharedPreferences 仍会保存设置

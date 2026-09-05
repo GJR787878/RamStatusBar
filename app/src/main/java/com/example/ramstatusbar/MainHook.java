@@ -723,6 +723,7 @@ public class MainHook
     }
 
     // 读取时间配置（带缓存，每秒最多读一次）
+    // 使用简单的key=value格式，避免JSON解析问题
     private void ensureTimeConfig() {
         long now = System.currentTimeMillis();
         if (now - mTimeConfigLastRead < 1000) {
@@ -735,59 +736,28 @@ public class MainHook
                 return;
             }
             BufferedReader br = new BufferedReader(new FileReader(file));
-            String line = br.readLine();
+            String line;
+            while ((line = br.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty() || !line.contains("=")) {
+                    continue;
+                }
+                int eqIdx = line.indexOf("=");
+                String key = line.substring(0, eqIdx).trim();
+                String value = line.substring(eqIdx + 1).trim();
+                if ("autoSync".equals(key)) {
+                    mTimeAutoSync = "true".equals(value);
+                } else if ("timeZone".equals(key)) {
+                    mTimeZoneId = value;
+                } else if ("customTime".equals(key)) {
+                    try { mCustomTime = Long.parseLong(value); } catch (Throwable t) {}
+                } else if ("syncTimeBase".equals(key)) {
+                    try { mSyncTimeBase = Long.parseLong(value); } catch (Throwable t) {}
+                } else if ("syncElapsedRealtime".equals(key)) {
+                    try { mSyncElapsedRealtime = Long.parseLong(value); } catch (Throwable t) {}
+                }
+            }
             br.close();
-            if (line == null) {
-                return;
-            }
-            line = line.trim();
-            // 简单解析JSON
-            if (line.contains("\"autoSync\":false")) {
-                mTimeAutoSync = false;
-            } else {
-                mTimeAutoSync = true;
-            }
-            int tzIdx = line.indexOf("\"timeZone\":\"");
-            if (tzIdx >= 0) {
-                int start = tzIdx + 12;
-                int end = line.indexOf("\"", start);
-                if (end > start) {
-                    mTimeZoneId = line.substring(start, end);
-                }
-            }
-            int baseIdx = line.indexOf("\"syncTimeBase\":");
-            if (baseIdx >= 0) {
-                int start = baseIdx + 15;
-                int end = start;
-                while (end < line.length() && (Character.isDigit(line.charAt(end)) || line.charAt(end) == '-')) {
-                    end++;
-                }
-                if (end > start) {
-                    mSyncTimeBase = Long.parseLong(line.substring(start, end));
-                }
-            }
-            int elapsedIdx = line.indexOf("\"syncElapsedRealtime\":");
-            if (elapsedIdx >= 0) {
-                int start = elapsedIdx + 23;
-                int end = start;
-                while (end < line.length() && (Character.isDigit(line.charAt(end)) || line.charAt(end) == '-')) {
-                    end++;
-                }
-                if (end > start) {
-                    mSyncElapsedRealtime = Long.parseLong(line.substring(start, end));
-                }
-            }
-            int customIdx = line.indexOf("\"customTime\":");
-            if (customIdx >= 0) {
-                int start = customIdx + 13;
-                int end = start;
-                while (end < line.length() && (Character.isDigit(line.charAt(end)) || line.charAt(end) == '-')) {
-                    end++;
-                }
-                if (end > start) {
-                    mCustomTime = Long.parseLong(line.substring(start, end));
-                }
-            }
         } catch (Throwable t) {
             // 读取失败时使用默认值
         }
