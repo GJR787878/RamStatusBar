@@ -7,7 +7,7 @@ android {
     compileSdk 34
 
     defaultConfig {
-        applicationId "io.github.gjr787878.ramstatusbar"
+        applicationId "com.github.gjr787878.ramstatusbar"
         minSdk 26
         targetSdk 34
         versionCode 2
