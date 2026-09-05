@@ -136,7 +136,11 @@ public class TimeSettingsActivity extends Activity {
 
         float density = getResources().getDisplayMetrics().density;
 
+        // 设置窗口背景为不透明黑色，防止透看到上一个页面
+        getWindow().setBackgroundDrawableResource(android.R.color.black);
+
         ScrollView scrollView = new ScrollView(this);
+        scrollView.setBackgroundColor(0xFF000000);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(
@@ -144,11 +148,35 @@ public class TimeSettingsActivity extends Activity {
                 Math.round(24 * density), Math.round(32 * density));
         root.setBackgroundColor(0xFF000000);
 
+        // 顶部栏：返回箭头 + 标题
+        LinearLayout topBar = new LinearLayout(this);
+        topBar.setOrientation(LinearLayout.HORIZONTAL);
+        topBar.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView backArrow = new TextView(this);
+        backArrow.setText("←");
+        backArrow.setTextSize(24);
+        backArrow.setTextColor(COLOR_WHITE);
+        backArrow.setPadding(0, 0, Math.round(16 * density), 0);
+        backArrow.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
+        topBar.addView(backArrow, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+
         TextView title = new TextView(this);
         title.setTextSize(20);
         title.setTextColor(COLOR_WHITE);
         title.setText(lang("时间设置", "Time Settings", "Настройки времени"));
-        root.addView(title, new LinearLayout.LayoutParams(
+        topBar.addView(title, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        root.addView(topBar, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
 
