@@ -4,13 +4,13 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -170,9 +170,7 @@ public class TimeSettingsActivity extends Activity {
         autoSyncLabel.setText(lang("自动同步", "Auto Sync", "Автосинхронизация"));
         root.addView(autoSyncLabel);
 
-        Button autoSyncButton = new Button(this);
-        autoSyncButton.setAllCaps(false);
-        autoSyncButton.setTextColor(COLOR_WHITE);
+        LinearLayout autoSyncButton = new LinearLayout(this);
         autoSyncButton.setBackground(createGlassButtonBg(density));
         autoSyncButton.setPadding(
                 Math.round(24 * density), Math.round(14 * density),
@@ -232,9 +230,7 @@ public class TimeSettingsActivity extends Activity {
         timeZoneLabel.setText(lang("选择时区", "Select Time Zone", "Выбор часового пояса"));
         root.addView(timeZoneLabel);
 
-        Button timeZoneButton = new Button(this);
-        timeZoneButton.setAllCaps(false);
-        timeZoneButton.setTextColor(COLOR_WHITE);
+        LinearLayout timeZoneButton = new LinearLayout(this);
         timeZoneButton.setBackground(createGlassButtonBg(density));
         timeZoneButton.setPadding(
                 Math.round(24 * density), Math.round(14 * density),
@@ -282,9 +278,7 @@ public class TimeSettingsActivity extends Activity {
         customTimeLabel.setText(lang("自定义时间", "Custom Time", "Пользовательское время"));
         root.addView(customTimeLabel);
 
-        Button customTimeButton = new Button(this);
-        customTimeButton.setAllCaps(false);
-        customTimeButton.setTextColor(COLOR_WHITE);
+        LinearLayout customTimeButton = new LinearLayout(this);
         customTimeButton.setBackground(createGlassButtonBg(density));
         customTimeButton.setPadding(
                 Math.round(24 * density), Math.round(14 * density),
@@ -336,14 +330,17 @@ public class TimeSettingsActivity extends Activity {
         root.addView(noteLabel);
 
         // 返回按钮
-        Button backButton = new Button(this);
-        backButton.setText(lang("返回", "Back", "Назад"));
-        backButton.setAllCaps(false);
-        backButton.setTextColor(COLOR_WHITE);
+        LinearLayout backButton = new LinearLayout(this);
         backButton.setBackground(createGlassButtonBg(density));
         backButton.setPadding(
                 Math.round(24 * density), Math.round(14 * density),
                 Math.round(24 * density), Math.round(14 * density));
+        backButton.setGravity(Gravity.CENTER);
+        TextView backText = new TextView(this);
+        backText.setText(lang("返回", "Back", "Назад"));
+        backText.setTextSize(14);
+        backText.setTextColor(COLOR_WHITE);
+        backButton.addView(backText);
         backButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -370,7 +367,7 @@ public class TimeSettingsActivity extends Activity {
         return bg;
     }
 
-    private void updateButtonStyle(Button button, boolean selected, float density) {
+    private void updateButtonStyle(LinearLayout button, boolean selected, float density) {
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(COLOR_NAV_BG);
         bg.setCornerRadius(Math.round(28 * density));
