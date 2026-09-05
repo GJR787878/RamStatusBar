@@ -492,9 +492,20 @@ public class TimeSettingsActivity extends Activity {
                                 .edit().putString(KEY_TIME_ZONE, mTimeZoneId).apply();
                         updateTimeZoneStatus();
                         updateCustomTimeStatus();
-                        Toast.makeText(TimeSettingsActivity.this,
-                                lang("时区已更新", "Time zone updated", "Часовой пояс обновлён"),
-                                Toast.LENGTH_SHORT).show();
+
+                        // 实际修改系统时区（需要root）
+                        boolean tzSuccess = setSystemTimeZone(mTimeZoneId);
+                        if (tzSuccess) {
+                            Toast.makeText(TimeSettingsActivity.this,
+                                    lang("时区已更新", "Time zone updated", "Часовой пояс обновлён"),
+                                    Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(TimeSettingsActivity.this,
+                                    lang("已保存设置，修改系统时区需要 root 权限",
+                                            "Saved. Changing system time zone requires root.",
+                                            "Сохранено. Изменение системного часового пояса требует root."),
+                                    Toast.LENGTH_LONG).show();
+                        }
                         dialog.dismiss();
                     }
                 });
@@ -562,12 +573,38 @@ public class TimeSettingsActivity extends Activity {
 
     private boolean setSystemTime(long timestamp) {
         try {
-            // 转换为秒
-            long seconds = timestamp / 1000;
+            // Android date 命令格式：date MMDDhhmm[[CC]YY][.ss]
+            Calendar cal = Calendar.getInstance();
+            cal.setTimeInMillis(timestamp);
+            int month = cal.get(Calendar.MONTH) + 1;
+            int day = cal.get(Calendar.DAY_OF_MONTH);
+            int hour = cal.get(Calendar.HOUR_OF_DAY);
+            int minute = cal.get(Calendar.MINUTE);
+            int year = cal.get(Calendar.YEAR);
+            int second = cal.get(Calendar.SECOND);
+
+            String dateStr = String.format(Locale.US, "%02d%02d%02d%02d%04d.%02d",
+                    month, day, hour, minute, year, second);
+
             Process su = Runtime.getRuntime().exec("su");
             java.io.DataOutputStream os = new java.io.DataOutputStream(su.getOutputStream());
-            os.writeBytes("date -u @" + seconds + "\n");
+            os.writeBytes("date " + dateStr + "\n");
             os.writeBytes("am broadcast -a android.intent.action.TIME_SET\n");
+            os.writeBytes("exit\n");
+            os.flush();
+            int result = su.waitFor();
+            return result == 0;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    private boolean setSystemTimeZone(String zoneId) {
+        try {
+            Process su = Runtime.getRuntime().exec("su");
+            java.io.DataOutputStream os = new java.io.DataOutputStream(su.getOutputStream());
+            os.writeBytes("setprop persist.sys.timezone " + zoneId + "\n");
+            os.writeBytes("am broadcast -a android.intent.action.TIMEZONE_CHANGED --ez time-zone " + zoneId + "\n");
             os.writeBytes("exit\n");
             os.flush();
             int result = su.waitFor();
