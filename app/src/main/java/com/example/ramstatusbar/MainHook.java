@@ -407,6 +407,9 @@ public class MainHook
                     timeFormat.format(
                             new Date(displayTimeMs)
                     );
+            XposedBridge.log(TAG + ": 显示时间=" + time 
+                    + " 时区=" + displayTz.getID() 
+                    + " UTC毫秒=" + displayTimeMs);
 
             String ram =
                     getRamInfo(
@@ -759,8 +762,12 @@ public class MainHook
             }
             br.close();
         } catch (Throwable t) {
-            // 读取失败时使用默认值
+            XposedBridge.log(TAG + ": ensureTimeConfig读取失败: " + t.getMessage());
         }
+        XposedBridge.log(TAG + ": 时间配置 autoSync=" + mTimeAutoSync 
+                + " timeZone=" + mTimeZoneId 
+                + " syncTimeBase=" + mSyncTimeBase 
+                + " customTime=" + mCustomTime);
     }
 
     // 根据时间配置计算当前显示时间（UTC毫秒）

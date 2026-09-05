@@ -128,7 +128,7 @@ public class TimeSettingsActivity extends Activity {
     }
 
     // 把时间设置写入配置文件，MainHook 会读取此文件
-    // 使用简单的key=value格式，避免JSON解析问题
+    // 使用root权限写入，并设置chmod 666确保SystemUI进程能读取
     private void saveTimeConfig() {
         try {
             StringBuilder sb = new StringBuilder();
@@ -137,9 +137,27 @@ public class TimeSettingsActivity extends Activity {
             sb.append("customTime=").append(mCustomTime).append("\n");
             sb.append("syncTimeBase=").append(mSyncTimeBase).append("\n");
             sb.append("syncElapsedRealtime=").append(mSyncElapsedRealtime).append("\n");
-            java.io.FileWriter writer = new java.io.FileWriter(TIME_CONFIG_FILE);
-            writer.write(sb.toString());
-            writer.close();
+            String content = sb.toString();
+            
+            // 通过root权限写入文件
+            Process su = Runtime.getRuntime().exec("su");
+            java.io.DataOutputStream os = new java.io.DataOutputStream(su.getOutputStream());
+            // 使用printf写入，避免echo的转义问题
+            os.writeBytes("printf '" + content.replace("'", "'\''") + "' > " + TIME_CONFIG_FILE + "\n");
+            os.writeBytes("chmod 666 " + TIME_CONFIG_FILE + "\n");
+            os.writeBytes("exit\n");
+            os.flush();
+            int result = su.waitFor();
+            if (result != 0) {
+                // root写入失败，尝试直接写入（可能没有权限）
+                try {
+                    java.io.FileWriter writer = new java.io.FileWriter(TIME_CONFIG_FILE);
+                    writer.write(content);
+                    writer.close();
+                } catch (Throwable t2) {
+                    // 忽略
+                }
+            }
         } catch (Throwable t) {
             // 写入失败时静默处理，SharedPreferences 仍会保存设置
         }
