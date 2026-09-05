@@ -6,7 +6,6 @@ import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
-import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
@@ -503,24 +502,19 @@ public class TimeSettingsActivity extends Activity {
         setContentView(scrollView);
     }
 
-    private GradientDrawable createGlassButtonBg(float density) {
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(COLOR_NAV_BG);
-        bg.setCornerRadius(Math.round(28 * density));
-        bg.setStroke(Math.round(1 * density), COLOR_NAV_BORDER);
-        return bg;
+    private GlassButtonDrawable createGlassButtonBg(float density) {
+        return new GlassButtonDrawable(Math.round(28 * density), Math.round(1 * density), false);
     }
 
     private void updateButtonStyle(LinearLayout button, boolean selected, float density) {
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(COLOR_NAV_BG);
-        bg.setCornerRadius(Math.round(28 * density));
-        if (selected) {
-            bg.setStroke(Math.round(2 * density), COLOR_WHITE);
+        if (button.getBackground() instanceof GlassButtonDrawable) {
+            ((GlassButtonDrawable) button.getBackground()).setGlassSelected(selected);
         } else {
-            bg.setStroke(Math.round(1 * density), COLOR_NAV_BORDER);
+            button.setBackground(new GlassButtonDrawable(
+                    Math.round(28 * density),
+                    Math.round((selected ? 2 : 1) * density),
+                    selected));
         }
-        button.setBackground(bg);
     }
 
     private void updateAutoSyncStatus() {

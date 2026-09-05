@@ -450,10 +450,8 @@ public class MainActivity extends Activity {
                 Math.round(8 * density), Math.round(8 * density),
                 Math.round(8 * density), Math.round(8 * density));
 
-        GradientDrawable navBg = new GradientDrawable();
-        navBg.setColor(COLOR_NAV_BG);
-        navBg.setCornerRadius(Math.round(28 * density));
-        navBg.setStroke(Math.round(1 * density), COLOR_NAV_BORDER);
+        GlassButtonDrawable navBg = new GlassButtonDrawable(
+                Math.round(28 * density), Math.round(1 * density), false);
         navBar.setBackground(navBg);
 
         FrameLayout.LayoutParams navBarParams = new FrameLayout.LayoutParams(
@@ -520,12 +518,8 @@ public class MainActivity extends Activity {
         return item;
     }
 
-    private GradientDrawable createGlassButtonBg(float density) {
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(COLOR_NAV_BG);
-        bg.setCornerRadius(Math.round(28 * density));
-        bg.setStroke(Math.round(1 * density), COLOR_NAV_BORDER);
-        return bg;
+    private GlassButtonDrawable createGlassButtonBg(float density) {
+        return new GlassButtonDrawable(Math.round(28 * density), Math.round(1 * density), false);
     }
 
     private RadioButton createModeRadioButton(int id, String text, float density) {
@@ -552,17 +546,15 @@ public class MainActivity extends Activity {
                                         RadioButton... buttons) {
         for (RadioButton rb : buttons) {
             boolean selected = (group.getCheckedRadioButtonId() == rb.getId());
-            GradientDrawable bg = new GradientDrawable();
-            bg.setColor(COLOR_NAV_BG);
-            bg.setCornerRadius(Math.round(28 * density));
-            if (selected) {
-                bg.setStroke(Math.round(2 * density), COLOR_WHITE);
-                rb.setTextColor(COLOR_ACCENT);
+            if (rb.getBackground() instanceof GlassButtonDrawable) {
+                ((GlassButtonDrawable) rb.getBackground()).setGlassSelected(selected);
             } else {
-                bg.setStroke(Math.round(1 * density), COLOR_NAV_BORDER);
-                rb.setTextColor(COLOR_WHITE);
+                rb.setBackground(new GlassButtonDrawable(
+                        Math.round(28 * density),
+                        Math.round((selected ? 2 : 1) * density),
+                        selected));
             }
-            rb.setBackground(bg);
+            rb.setTextColor(selected ? COLOR_ACCENT : COLOR_WHITE);
         }
     }
 

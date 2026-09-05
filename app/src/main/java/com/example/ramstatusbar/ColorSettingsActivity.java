@@ -171,12 +171,8 @@ public class ColorSettingsActivity extends Activity {
         setContentView(root);
     }
 
-    private GradientDrawable createGlassButtonBg(float density) {
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(COLOR_NAV_BG);
-        bg.setCornerRadius(Math.round(28 * density));
-        bg.setStroke(Math.round(1 * density), COLOR_NAV_BORDER);
-        return bg;
+    private GlassButtonDrawable createGlassButtonBg(float density) {
+        return new GlassButtonDrawable(Math.round(28 * density), Math.round(1 * density), false);
     }
 
     private void showColorPicker() {
