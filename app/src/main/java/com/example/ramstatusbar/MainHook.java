@@ -47,6 +47,8 @@ public class MainHook
      */
     private static final String COLOR_FILE =
             "/data/local/tmp/ramstatusbar_color";
+    private static final String TIME_CONFIG_FILE =
+            "/data/local/tmp/ramstatusbar_time";
 
     private static final int MODE_TIME_ONLY = 0;
     private static final int MODE_TIME_RAM = 1;
@@ -90,6 +92,13 @@ public class MainHook
 
     private boolean mApplyingOurText =
             false;
+    // 时间配置缓存
+    private long mTimeConfigLastRead = 0;
+    private boolean mTimeAutoSync = true;
+    private String mTimeZoneId = null;
+    private long mSyncTimeBase = 0;
+    private long mSyncElapsedRealtime = 0;
+    private long mCustomTime = 0;
 
     private Integer mLastCpuPercent = null;
     private Integer mLastGpuPercent = null;
@@ -390,9 +399,13 @@ public class MainHook
             Context context =
                     clockView.getContext();
 
+            // 根据时间配置计算显示时间（NTP同步/自定义/系统时间）
+            long displayTimeMs = getDisplayTime();
+            java.util.TimeZone displayTz = getDisplayTimeZone();
+            timeFormat.setTimeZone(displayTz);
             String time =
                     timeFormat.format(
-                            new Date()
+                            new Date(displayTimeMs)
                     );
 
             String ram =
@@ -707,6 +720,106 @@ public class MainHook
 
         } catch (Throwable ignored) {
         }
+    }
+
+    // 读取时间配置（带缓存，每秒最多读一次）
+    private void ensureTimeConfig() {
+        long now = System.currentTimeMillis();
+        if (now - mTimeConfigLastRead < 1000) {
+            return;
+        }
+        mTimeConfigLastRead = now;
+        try {
+            java.io.File file = new java.io.File(TIME_CONFIG_FILE);
+            if (!file.exists()) {
+                return;
+            }
+            BufferedReader br = new BufferedReader(new FileReader(file));
+            String line = br.readLine();
+            br.close();
+            if (line == null) {
+                return;
+            }
+            line = line.trim();
+            // 简单解析JSON
+            if (line.contains(""autoSync":false")) {
+                mTimeAutoSync = false;
+            } else {
+                mTimeAutoSync = true;
+            }
+            int tzIdx = line.indexOf(""timeZone":"");
+            if (tzIdx >= 0) {
+                int start = tzIdx + 12;
+                int end = line.indexOf(""", start);
+                if (end > start) {
+                    mTimeZoneId = line.substring(start, end);
+                }
+            }
+            int baseIdx = line.indexOf(""syncTimeBase":");
+            if (baseIdx >= 0) {
+                int start = baseIdx + 15;
+                int end = start;
+                while (end < line.length() && (Character.isDigit(line.charAt(end)) || line.charAt(end) == '-')) {
+                    end++;
+                }
+                if (end > start) {
+                    mSyncTimeBase = Long.parseLong(line.substring(start, end));
+                }
+            }
+            int elapsedIdx = line.indexOf(""syncElapsedRealtime":");
+            if (elapsedIdx >= 0) {
+                int start = elapsedIdx + 23;
+                int end = start;
+                while (end < line.length() && (Character.isDigit(line.charAt(end)) || line.charAt(end) == '-')) {
+                    end++;
+                }
+                if (end > start) {
+                    mSyncElapsedRealtime = Long.parseLong(line.substring(start, end));
+                }
+            }
+            int customIdx = line.indexOf(""customTime":");
+            if (customIdx >= 0) {
+                int start = customIdx + 13;
+                int end = start;
+                while (end < line.length() && (Character.isDigit(line.charAt(end)) || line.charAt(end) == '-')) {
+                    end++;
+                }
+                if (end > start) {
+                    mCustomTime = Long.parseLong(line.substring(start, end));
+                }
+            }
+        } catch (Throwable t) {
+            // 读取失败时使用默认值
+        }
+    }
+
+    // 根据时间配置计算当前显示时间（UTC毫秒）
+    private long getDisplayTime() {
+        ensureTimeConfig();
+        if (mTimeAutoSync && mSyncTimeBase > 0 && mSyncElapsedRealtime > 0) {
+            // 使用NTP同步的时间基准
+            long elapsed = android.os.SystemClock.elapsedRealtime() - mSyncElapsedRealtime;
+            return mSyncTimeBase + elapsed;
+        }
+        if (!mTimeAutoSync && mCustomTime > 0) {
+            // 使用自定义时间（固定显示，不流逝）
+            return mCustomTime;
+        }
+        // 默认使用系统时间
+        return System.currentTimeMillis();
+    }
+
+    // 获取用于格式化的时区
+    private java.util.TimeZone getDisplayTimeZone() {
+        ensureTimeConfig();
+        if (mTimeZoneId != null && !mTimeZoneId.isEmpty()) {
+            try {
+                return java.util.TimeZone.getTimeZone(mTimeZoneId);
+            } catch (Throwable t) {
+                // 忽略
+            }
+        }
+        return java.util.TimeZone.getDefault();
     }
 
     private int readModeFromFile() {

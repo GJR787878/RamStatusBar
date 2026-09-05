@@ -29,6 +29,8 @@ public class TimeSettingsActivity extends Activity {
     private static final String KEY_AUTO_SYNC = "auto_sync";
     private static final String KEY_TIME_ZONE = "time_zone";
     private static final String KEY_CUSTOM_TIME = "custom_time";
+    // 时间配置文件，MainHook 读取此文件来决定状态栏显示的时间
+    private static final String TIME_CONFIG_FILE = "/data/local/tmp/ramstatusbar_time";
 
     private static final String UI_PREFS_NAME = "ui_prefs";
     private static final String KEY_LANGUAGE = "language";
@@ -45,6 +47,9 @@ public class TimeSettingsActivity extends Activity {
     private boolean mAutoSync = true;
     private String mTimeZoneId = TimeZone.getDefault().getID();
     private long mCustomTime = 0;
+    // NTP同步时间基准
+    private long mSyncTimeBase = 0;
+    private long mSyncElapsedRealtime = 0;
 
     private TextView mAutoSyncStatus;
     private TextView mTimeZoneStatus;
@@ -120,6 +125,90 @@ public class TimeSettingsActivity extends Activity {
         if (LANG_RU.equals(mLanguage)) return ru;
         if (LANG_EN.equals(mLanguage)) return en;
         return zh;
+    }
+
+    // 把时间设置写入配置文件，MainHook 会读取此文件
+    private void saveTimeConfig() {
+        try {
+            String json = "{\"autoSync\":" + mAutoSync
+                    + ",\"timeZone\":\"" + mTimeZoneId + "\""
+                    + ",\"customTime\":" + mCustomTime
+                    + ",\"syncTimeBase\":" + mSyncTimeBase
+                    + ",\"syncElapsedRealtime\":" + mSyncElapsedRealtime + "}";
+            java.io.FileWriter writer = new java.io.FileWriter(TIME_CONFIG_FILE);
+            writer.write(json);
+            writer.close();
+        } catch (Throwable t) {
+            // 写入失败时静默处理，SharedPreferences 仍会保存设置
+        }
+    }
+
+    // 通过NTP协议获取网络准确时间（UTC毫秒）
+    private long getNtpTime() {
+        String[] ntpServers = {"pool.ntp.org", "time.google.com", "time.windows.com", "ntp.aliyun.com"};
+        for (String server : ntpServers) {
+            try {
+                java.net.DatagramSocket socket = new java.net.DatagramSocket();
+                socket.setSoTimeout(3000);
+                byte[] buffer = new byte[48];
+                buffer[0] = 0x1B; // LI=0, VN=3, Mode=3 (client)
+                java.net.InetAddress address = java.net.InetAddress.getByName(server);
+                java.net.DatagramPacket request = new java.net.DatagramPacket(buffer, buffer.length, address, 123);
+                socket.send(request);
+                java.net.DatagramPacket response = new java.net.DatagramPacket(buffer, buffer.length);
+                socket.receive(response);
+                socket.close();
+
+                // NTP时间戳从第40字节开始，64位固定点数（高32位秒，低32位分数）
+                long seconds = 0;
+                long fraction = 0;
+                for (int i = 40; i < 44; i++) {
+                    seconds = (seconds << 8) | (buffer[i] & 0xFF);
+                }
+                for (int i = 44; i < 48; i++) {
+                    fraction = (fraction << 8) | (buffer[i] & 0xFF);
+                }
+                // NTP时间从1900年开始，Unix时间从1970年开始，相差2208988800秒
+                long unixSeconds = seconds - 2208988800L;
+                long unixMillis = unixSeconds * 1000 + (fraction * 1000) / 0x100000000L;
+                if (unixMillis > 0) {
+                    return unixMillis;
+                }
+            } catch (Exception e) {
+                // 尝试下一个NTP服务器
+            }
+        }
+        return -1;
+    }
+
+    // 在后台线程执行NTP同步
+    private void syncNtpTime() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final long ntpTime = getNtpTime();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (ntpTime > 0) {
+                            mSyncTimeBase = ntpTime;
+                            mSyncElapsedRealtime = android.os.SystemClock.elapsedRealtime();
+                            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                                    .putLong("sync_time_base", mSyncTimeBase)
+                                    .putLong("sync_elapsed_realtime", mSyncElapsedRealtime).apply();
+                            saveTimeConfig();
+                            Toast.makeText(TimeSettingsActivity.this,
+                                    lang("时间同步成功", "Time synced", "Время синхронизировано"),
+                                    Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(TimeSettingsActivity.this,
+                                    lang("同步失败，使用系统时间", "Sync failed, using system time", "Синхр. не удалась"),
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+            }
+        }).start();
     }
 
     @Override
@@ -233,11 +322,18 @@ public class TimeSettingsActivity extends Activity {
                         .edit().putBoolean(KEY_AUTO_SYNC, mAutoSync).apply();
                 updateAutoSyncStatus();
                 updateButtonStyle(autoSyncButton, mAutoSync, density);
-                Toast.makeText(TimeSettingsActivity.this,
-                        mAutoSync
-                                ? lang("已开启自动同步", "Auto sync enabled", "Автосинхр. включена")
-                                : lang("已关闭自动同步", "Auto sync disabled", "Автосинхр. выключена"),
-                        Toast.LENGTH_SHORT).show();
+                if (mAutoSync) {
+                    // 开启自动同步时，通过NTP获取当前选择时区的准确时间
+                    Toast.makeText(TimeSettingsActivity.this,
+                            lang("正在同步时间...", "Syncing time...", "Синхронизация времени..."),
+                            Toast.LENGTH_SHORT).show();
+                    syncNtpTime();
+                } else {
+                    saveTimeConfig();
+                    Toast.makeText(TimeSettingsActivity.this,
+                            lang("已关闭自动同步", "Auto sync disabled", "Автосинхр. выключена"),
+                            Toast.LENGTH_SHORT).show();
+                }
             }
         });
         updateButtonStyle(autoSyncButton, mAutoSync, density);
@@ -490,22 +586,12 @@ public class TimeSettingsActivity extends Activity {
                         mTimeZoneId = zoneIds.get(which);
                         getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                                 .edit().putString(KEY_TIME_ZONE, mTimeZoneId).apply();
+                        saveTimeConfig();
                         updateTimeZoneStatus();
                         updateCustomTimeStatus();
-
-                        // 实际修改系统时区（需要root）
-                        boolean tzSuccess = setSystemTimeZone(mTimeZoneId);
-                        if (tzSuccess) {
-                            Toast.makeText(TimeSettingsActivity.this,
-                                    lang("时区已更新", "Time zone updated", "Часовой пояс обновлён"),
-                                    Toast.LENGTH_SHORT).show();
-                        } else {
-                            Toast.makeText(TimeSettingsActivity.this,
-                                    lang("已保存设置，修改系统时区需要 root 权限",
-                                            "Saved. Changing system time zone requires root.",
-                                            "Сохранено. Изменение системного часового пояса требует root."),
-                                    Toast.LENGTH_LONG).show();
-                        }
+                        Toast.makeText(TimeSettingsActivity.this,
+                                lang("时区已更新", "Time zone updated", "Часовой пояс обновлён"),
+                                Toast.LENGTH_SHORT).show();
                         dialog.dismiss();
                     }
                 });
@@ -544,21 +630,13 @@ public class TimeSettingsActivity extends Activity {
                                         mCustomTime = cal.getTimeInMillis();
                                         getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                                                 .edit().putLong(KEY_CUSTOM_TIME, mCustomTime).apply();
+                                        saveTimeConfig();
                                         updateCustomTimeStatus();
-
-                                        // 尝试设置系统时间（需要root）
-                                        boolean success = setSystemTime(mCustomTime);
-                                        if (success) {
-                                            Toast.makeText(TimeSettingsActivity.this,
-                                                    lang("时间已设置", "Time set", "Время установлено"),
-                                                    Toast.LENGTH_SHORT).show();
-                                        } else {
-                                            Toast.makeText(TimeSettingsActivity.this,
-                                                    lang("已保存设置，设置系统时间需要 root 权限",
-                                                            "Saved. Setting system time requires root.",
-                                                            "Сохранено. Установка системного времени требует root."),
-                                                    Toast.LENGTH_LONG).show();
-                                        }
+                                        Toast.makeText(TimeSettingsActivity.this,
+                                                lang("自定义时间已保存",
+                                                        "Custom time saved",
+                                                        "Пользовательское время сохранено"),
+                                                Toast.LENGTH_SHORT).show();
                                     }
                                 },
                                 hour, minute, true);
@@ -571,46 +649,6 @@ public class TimeSettingsActivity extends Activity {
         datePicker.show();
     }
 
-    private boolean setSystemTime(long timestamp) {
-        try {
-            // Android date 命令格式：date MMDDhhmm[[CC]YY][.ss]
-            Calendar cal = Calendar.getInstance();
-            cal.setTimeInMillis(timestamp);
-            int month = cal.get(Calendar.MONTH) + 1;
-            int day = cal.get(Calendar.DAY_OF_MONTH);
-            int hour = cal.get(Calendar.HOUR_OF_DAY);
-            int minute = cal.get(Calendar.MINUTE);
-            int year = cal.get(Calendar.YEAR);
-            int second = cal.get(Calendar.SECOND);
 
-            String dateStr = String.format(Locale.US, "%02d%02d%02d%02d%04d.%02d",
-                    month, day, hour, minute, year, second);
-
-            Process su = Runtime.getRuntime().exec("su");
-            java.io.DataOutputStream os = new java.io.DataOutputStream(su.getOutputStream());
-            os.writeBytes("date " + dateStr + "\n");
-            os.writeBytes("am broadcast -a android.intent.action.TIME_SET\n");
-            os.writeBytes("exit\n");
-            os.flush();
-            int result = su.waitFor();
-            return result == 0;
-        } catch (Throwable t) {
-            return false;
-        }
-    }
-
-    private boolean setSystemTimeZone(String zoneId) {
-        try {
-            Process su = Runtime.getRuntime().exec("su");
-            java.io.DataOutputStream os = new java.io.DataOutputStream(su.getOutputStream());
-            os.writeBytes("setprop persist.sys.timezone " + zoneId + "\n");
-            os.writeBytes("am broadcast -a android.intent.action.TIMEZONE_CHANGED --ez time-zone " + zoneId + "\n");
-            os.writeBytes("exit\n");
-            os.flush();
-            int result = su.waitFor();
-            return result == 0;
-        } catch (Throwable t) {
-            return false;
-        }
     }
 }
