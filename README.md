@@ -53,8 +53,9 @@
 - **自定义背景颜色**：HSV 取色盘 + 亮度/透明度调节 + 预设色板，支持完全透明
 - **深度休眠统计**：主页实时显示开机以来深度休眠时长和占比
 - **总内存自动识别**：自动检测总内存并取整到常见规格（3/4/6/8/12/16/18/24/32GB）
-- **三语界面**：支持中文 / English / Русский 一键切换
-- **三页底部导航**：主页（概览）/ 配置（显示模式）/ 设置（颜色与语言）
+- **时间设置**：自动同步（NTP网络时间）/ 选择时区（70+全球主要城市）/ 自定义时间，时间显示与系统时间完全剥离，不修改系统时间
+- **三语界面**：支持中文 / English / Русский 一键切换，时区选择界面同步多语言
+- **三页底部导航**：主页（概览）/ 配置（显示模式）/ 设置（颜色、时间与语言）
 - **胶囊样式**：状态栏文字自带圆角胶囊背景，宽度自适应不抖动
 
 ### 📋 系统要求
@@ -89,8 +90,11 @@
    - 切换后 1 秒内生效，无需重启
 2. **主页**：查看模块介绍、点击时钟查 CPU/GPU 的说明、实时深度休眠统计
 3. **设置页**：
-   - 点击 **「Pick background color」** 自定义状态栏胶囊背景颜色（HSV 取色盘，支持亮度、透明度、预设色）
-   - 点击 **「Transparent」** 一键设置完全透明背景
+   - 点击 **「背景颜色」** 自定义状态栏胶囊背景颜色（HSV 取色盘，支持亮度、透明度、预设色）
+   - 点击 **「时间设置」** 进入时间设置二级界面：
+     - **自动同步**：开启后通过 NTP 从网络获取当前选择时区的准确时间
+     - **选择时区**：70+ 全球主要城市，切换后状态栏时间按该时区显示（不修改系统时间）
+     - **自定义时间**：设置后状态栏固定显示该时间
    - 切换界面语言：中文 / English / Русский
 4. 在状态栏上**点击时钟**可循环查看 CPU 占用率 → GPU 占用率 → 正常显示
 
@@ -98,7 +102,7 @@
 
 ### 🔧 工作原理
 
-模块通过 LSPosed Hook 系统界面（com.android.systemui）中的时钟控件，每秒读取系统内存信息并替换时钟文字。显示模式和背景颜色通过 `/data/local/tmp/` 下的配置文件传递，切换时即时生效。点击时钟时在 CPU / GPU 占用率和正常显示之间循环，10 秒无操作自动恢复。
+模块通过 LSPosed Hook 系统界面（com.android.systemui）中的时钟控件，每秒读取系统内存信息并替换时钟文字。显示模式、背景颜色和时间设置通过 `/data/local/tmp/` 下的配置文件传递，切换时即时生效。时间显示与系统时间完全剥离：自动同步模式通过 NTP 获取网络时间，时区模式按选择的时区格式化显示，自定义时间模式显示固定时间，均不修改系统时间。点击时钟时在 CPU / GPU 占用率和正常显示之间循环，10 秒无操作自动恢复。
 
 ### ❓ 常见问题
 
@@ -164,8 +168,9 @@ An LSPosed module that **displays real-time RAM usage in the status bar clock ar
 - **Custom background color**: HSV color picker + brightness/opacity sliders + preset swatches, including fully transparent
 - **Deep sleep stats**: Real-time deep sleep duration and percentage since boot on the Home tab
 - **Auto RAM detection**: Automatically detects total RAM and rounds to common tiers (3/4/6/8/12/16/18/24/32GB)
-- **Trilingual UI**: Chinese / English / Русский — switch with one tap
-- **Three-tab navigation**: Home (overview) / Config (display mode) / Settings (color & language)
+- **Time Settings**: Auto sync (NTP network time) / Select time zone (70+ global cities) / Custom time — time display is completely decoupled from system time, no system time modification
+- **Trilingual UI**: Chinese / English / Русский — switch with one tap, time zone picker supports all three languages
+- **Three-tab navigation**: Home (overview) / Config (display mode) / Settings (color, time & language)
 - **Pill style**: Rounded capsule background with adaptive fixed width, no jitter
 
 ### 📋 Requirements
@@ -200,8 +205,11 @@ The app has three tabs at the bottom: **Home / Config / Settings**
    - Changes apply within 1 second — no reboot needed
 2. **Home tab**: Module overview, CPU/GPU tap instructions, real-time deep sleep stats
 3. **Settings tab**:
-   - Tap **「Pick background color」** to customize the pill background (HSV picker with brightness, opacity, presets)
-   - Tap **「Transparent」** for a fully transparent background
+   - Tap **「Background color」** to customize the pill background (HSV picker with brightness, opacity, presets)
+   - Tap **「Time Settings」** to enter the time settings secondary interface:
+     - **Auto Sync**: When enabled, fetches accurate time for the selected time zone via NTP from the network
+     - **Select Time Zone**: 70+ global cities, status bar time displays according to the selected zone (does not modify system time)
+     - **Custom Time**: Status bar displays the fixed time after setting
    - Switch UI language: Chinese / English / Русский
 4. **Tap the clock** in the status bar to cycle through CPU usage → GPU usage → normal display
 
@@ -209,7 +217,7 @@ The app has three tabs at the bottom: **Home / Config / Settings**
 
 ### 🔧 How It Works
 
-The module hooks the clock widget in SystemUI (com.android.systemui) via LSPosed, reads system memory info every second, and replaces the clock text. Display mode and background color are passed via config files in `/data/local/tmp/`, so changes take effect instantly. Tapping the clock cycles between CPU / GPU usage and normal display, auto-reverting after 10 seconds of inactivity.
+The module hooks the clock widget in SystemUI (com.android.systemui) via LSPosed, reads system memory info every second, and replaces the clock text. Display mode, background color and time settings are passed via config files in `/data/local/tmp/`, so changes take effect instantly. Time display is completely decoupled from system time: auto sync mode fetches network time via NTP, time zone mode formats display according to the selected zone, custom time mode displays fixed time — none modify system time. Tapping the clock cycles between CPU / GPU usage and normal display, auto-reverting after 10 seconds of inactivity.
 
 ### ❓ FAQ
 
@@ -275,8 +283,9 @@ A: No. The module uses a fixed-width strategy — width only expands, never shri
 - **Настраиваемый цвет фона**: палитра HSV + ползунки яркости/прозрачности + предустановленные образцы, включая полную прозрачность
 - **Статистика глубокого сна**: длительность и процент глубокого сна с момента загрузки на вкладке «Главная»
 - **Автоопределение ОЗУ**: автоматически определяет общий объём ОЗУ и округляется до распространённых значений (3/4/6/8/12/16/18/24/32 ГБ)
-- **Трёхъязычный интерфейс**: китайский / English / Русский — переключение одним нажатием
-- **Трёхвкладочная навигация**: Главная (обзор) / Конфиг (режим отображения) / Настройки (цвет и язык)
+- **Настройки времени**: Автосинхронизация (сетевое время NTP) / Выбор часового пояса (70+ городов мира) / Пользовательское время — отображение времени полностью отделено от системного времени, без изменения системного времени
+- **Трёхъязычный интерфейс**: китайский / English / Русский — переключение одним нажатием, выбор часового пояса поддерживает все три языка
+- **Трёхвкладочная навигация**: Главная (обзор) / Конфиг (режим отображения) / Настройки (цвет, время и язык)
 - **Стиль капсулы**: скруглённый фон капсулы с адаптивной фиксированной шириной, без дрожания
 
 ### 📋 Требования
@@ -311,8 +320,11 @@ A: No. The module uses a fixed-width strategy — width only expands, never shri
    - Изменения применяются за 1 секунду — перезагрузка не требуется
 2. **Вкладка «Главная»**: обзор модуля, инструкции по нажатию на часы для CPU/GPU, статистика глубокого сна в реальном времени
 3. **Вкладка «Настройки»**:
-   - Нажмите **«Pick background color»**, чтобы настроить фон капсулы (палитра HSV с яркостью, прозрачностью, образцами)
-   - Нажмите **«Transparent»** для полностью прозрачного фона
+   - Нажмите **«Цвет фона»**, чтобы настроить фон капсулы (палитра HSV с яркостью, прозрачностью, образцами)
+   - Нажмите **«Настройки времени»**, чтобы войти в дополнительный интерфейс настроек времени:
+     - **Автосинхронизация**: При включении получает точное время для выбранного часового пояса через NTP из сети
+     - **Выбор часового пояса**: 70+ городов мира, время в строке состояния отображается согласно выбранному поясу (не изменяет системное время)
+     - **Пользовательское время**: В строке состояния отображается фиксированное время после настройки
    - Переключите язык интерфейса: китайский / English / Русский
 4. **Нажмите на часы** в строке состояния, чтобы переключаться между загрузкой CPU → загрузкой GPU → обычным отображением
 
@@ -320,7 +332,7 @@ A: No. The module uses a fixed-width strategy — width only expands, never shri
 
 ### 🔧 Как это работает
 
-Модуль перехватывает виджет часов в SystemUI (com.android.systemui) через LSPosed, считывает информацию о памяти системы каждую секунду и заменяет текст часов. Режим отображения и цвет фона передаются через файлы конфигурации в `/data/local/tmp/`, поэтому изменения применяются мгновенно. Нажатие на часы переключается между загрузкой CPU / GPU и обычным отображением, с автоматическим возвратом через 10 секунд бездействия.
+Модуль перехватывает виджет часов в SystemUI (com.android.systemui) через LSPosed, считывает информацию о памяти системы каждую секунду и заменяет текст часов. Режим отображения, цвет фона и настройки времени передаются через файлы конфигурации в `/data/local/tmp/`, поэтому изменения применяются мгновенно. Отображение времени полностью отделено от системного времени: режим автосинхронизации получает сетевое время через NTP, режим часового пояса форматирует отображение согласно выбранному поясу, режим пользовательского времени отображает фиксированное время — ни один не изменяет системное время. Нажатие на часы переключается между загрузкой CPU / GPU и обычным отображением, с автоматическим возвратом через 10 секунд бездействия.
 
 ### ❓ Часто задаваемые вопросы
 
