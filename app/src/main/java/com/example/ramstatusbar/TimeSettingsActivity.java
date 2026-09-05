@@ -55,70 +55,70 @@ public class TimeSettingsActivity extends Activity {
     private TextView mTimeZoneStatus;
     private TextView mCustomTimeStatus;
 
-    // 主要城市时区列表
+    // 主要城市时区列表 [中文, 英文, 俄文, 时区ID]
     private static final String[][] CITY_TIMEZONES = {
-            {"北京 / 上海", "Asia/Shanghai"},
-            {"香港", "Asia/Hong_Kong"},
-            {"台北", "Asia/Taipei"},
-            {"东京", "Asia/Tokyo"},
-            {"首尔", "Asia/Seoul"},
-            {"新加坡", "Asia/Singapore"},
-            {"曼谷", "Asia/Bangkok"},
-            {"雅加达", "Asia/Jakarta"},
-            {"马尼拉", "Asia/Manila"},
-            {"吉隆坡", "Asia/Kuala_Lumpur"},
-            {"新德里", "Asia/Kolkata"},
-            {"迪拜", "Asia/Dubai"},
-            {"德黑兰", "Asia/Tehran"},
-            {"伊斯坦布尔", "Europe/Istanbul"},
-            {"莫斯科", "Europe/Moscow"},
-            {"伦敦", "Europe/London"},
-            {"巴黎", "Europe/Paris"},
-            {"柏林", "Europe/Berlin"},
-            {"罗马", "Europe/Rome"},
-            {"马德里", "Europe/Madrid"},
-            {"阿姆斯特丹", "Europe/Amsterdam"},
-            {"斯德哥尔摩", "Europe/Stockholm"},
-            {"苏黎世", "Europe/Zurich"},
-            {"维也纳", "Europe/Vienna"},
-            {"华沙", "Europe/Warsaw"},
-            {"雅典", "Europe/Athens"},
-            {"开罗", "Africa/Cairo"},
-            {"约翰内斯堡", "Africa/Johannesburg"},
-            {"拉各斯", "Africa/Lagos"},
-            {"内罗毕", "Africa/Nairobi"},
-            {"纽约", "America/New_York"},
-            {"洛杉矶", "America/Los_Angeles"},
-            {"芝加哥", "America/Chicago"},
-            {"休斯顿", "America/Chicago"},
-            {"凤凰城", "America/Phoenix"},
-            {"丹佛", "America/Denver"},
-            {"西雅图", "America/Los_Angeles"},
-            {"波士顿", "America/New_York"},
-            {"迈阿密", "America/New_York"},
-            {"亚特兰大", "America/New_York"},
-            {"达拉斯", "America/Chicago"},
-            {"旧金山", "America/Los_Angeles"},
-            {"华盛顿", "America/New_York"},
-            {"多伦多", "America/Toronto"},
-            {"温哥华", "America/Vancouver"},
-            {"蒙特利尔", "America/Toronto"},
-            {"墨西哥城", "America/Mexico_City"},
-            {"圣保罗", "America/Sao_Paulo"},
-            {"里约热内卢", "America/Sao_Paulo"},
-            {"布宜诺斯艾利斯", "America/Argentina/Buenos_Aires"},
-            {"圣地亚哥", "America/Santiago"},
-            {"利马", "America/Lima"},
-            {"波哥大", "America/Bogota"},
-            {"悉尼", "Australia/Sydney"},
-            {"墨尔本", "Australia/Melbourne"},
-            {"布里斯班", "Australia/Brisbane"},
-            {"珀斯", "Australia/Perth"},
-            {"奥克兰", "Pacific/Auckland"},
-            {"惠灵顿", "Pacific/Auckland"},
-            {"斐济", "Pacific/Fiji"},
-            {"夏威夷", "Pacific/Honolulu"},
-            {"阿拉斯加", "America/Anchorage"},
+            {"北京 / 上海", "Beijing / Shanghai", "Пекин / Шанхай", "Asia/Shanghai"},
+            {"香港", "Hong Kong", "Гонконг", "Asia/Hong_Kong"},
+            {"台北", "Taipei", "Тайбэй", "Asia/Taipei"},
+            {"东京", "Tokyo", "Токио", "Asia/Tokyo"},
+            {"首尔", "Seoul", "Сеул", "Asia/Seoul"},
+            {"新加坡", "Singapore", "Сингапур", "Asia/Singapore"},
+            {"曼谷", "Bangkok", "Бангкок", "Asia/Bangkok"},
+            {"雅加达", "Jakarta", "Джакарта", "Asia/Jakarta"},
+            {"马尼拉", "Manila", "Манила", "Asia/Manila"},
+            {"吉隆坡", "Kuala Lumpur", "Куала-Лумпур", "Asia/Kuala_Lumpur"},
+            {"新德里", "New Delhi", "Нью-Дели", "Asia/Kolkata"},
+            {"迪拜", "Dubai", "Дубай", "Asia/Dubai"},
+            {"德黑兰", "Tehran", "Тегеран", "Asia/Tehran"},
+            {"伊斯坦布尔", "Istanbul", "Стамбул", "Europe/Istanbul"},
+            {"莫斯科", "Moscow", "Москва", "Europe/Moscow"},
+            {"伦敦", "London", "Лондон", "Europe/London"},
+            {"巴黎", "Paris", "Париж", "Europe/Paris"},
+            {"柏林", "Berlin", "Берлин", "Europe/Berlin"},
+            {"罗马", "Rome", "Рим", "Europe/Rome"},
+            {"马德里", "Madrid", "Мадрид", "Europe/Madrid"},
+            {"阿姆斯特丹", "Amsterdam", "Амстердам", "Europe/Amsterdam"},
+            {"斯德哥尔摩", "Stockholm", "Стокгольм", "Europe/Stockholm"},
+            {"苏黎世", "Zurich", "Цюрих", "Europe/Zurich"},
+            {"维也纳", "Vienna", "Вена", "Europe/Vienna"},
+            {"华沙", "Warsaw", "Варшава", "Europe/Warsaw"},
+            {"雅典", "Athens", "Афины", "Europe/Athens"},
+            {"开罗", "Cairo", "Каир", "Africa/Cairo"},
+            {"约翰内斯堡", "Johannesburg", "Йоханнесбург", "Africa/Johannesburg"},
+            {"拉各斯", "Lagos", "Лагос", "Africa/Lagos"},
+            {"内罗毕", "Nairobi", "Найроби", "Africa/Nairobi"},
+            {"纽约", "New York", "Нью-Йорк", "America/New_York"},
+            {"洛杉矶", "Los Angeles", "Лос-Анджелес", "America/Los_Angeles"},
+            {"芝加哥", "Chicago", "Чикаго", "America/Chicago"},
+            {"休斯顿", "Houston", "Хьюстон", "America/Chicago"},
+            {"凤凰城", "Phoenix", "Феникс", "America/Phoenix"},
+            {"丹佛", "Denver", "Денвер", "America/Denver"},
+            {"西雅图", "Seattle", "Сиэтл", "America/Los_Angeles"},
+            {"波士顿", "Boston", "Бостон", "America/New_York"},
+            {"迈阿密", "Miami", "Майами", "America/New_York"},
+            {"亚特兰大", "Atlanta", "Атланта", "America/New_York"},
+            {"达拉斯", "Dallas", "Даллас", "America/Chicago"},
+            {"旧金山", "San Francisco", "Сан-Франциско", "America/Los_Angeles"},
+            {"华盛顿", "Washington", "Вашингтон", "America/New_York"},
+            {"多伦多", "Toronto", "Торонто", "America/Toronto"},
+            {"温哥华", "Vancouver", "Ванкувер", "America/Vancouver"},
+            {"蒙特利尔", "Montreal", "Монреаль", "America/Toronto"},
+            {"墨西哥城", "Mexico City", "Мехико", "America/Mexico_City"},
+            {"圣保罗", "Sao Paulo", "Сан-Паулу", "America/Sao_Paulo"},
+            {"里约热内卢", "Rio de Janeiro", "Рио-де-Жанейро", "America/Sao_Paulo"},
+            {"布宜诺斯艾利斯", "Buenos Aires", "Буэнос-Айрес", "America/Argentina/Buenos_Aires"},
+            {"圣地亚哥", "Santiago", "Сантьяго", "America/Santiago"},
+            {"利马", "Lima", "Лима", "America/Lima"},
+            {"波哥大", "Bogota", "Богота", "America/Bogota"},
+            {"悉尼", "Sydney", "Сидней", "Australia/Sydney"},
+            {"墨尔本", "Melbourne", "Мельбурн", "Australia/Melbourne"},
+            {"布里斯班", "Brisbane", "Брисбен", "Australia/Brisbane"},
+            {"珀斯", "Perth", "Перт", "Australia/Perth"},
+            {"奥克兰", "Auckland", "Окленд", "Pacific/Auckland"},
+            {"惠灵顿", "Wellington", "Веллингтон", "Pacific/Auckland"},
+            {"斐济", "Fiji", "Фиджи", "Pacific/Fiji"},
+            {"夏威夷", "Hawaii", "Гавайи", "Pacific/Honolulu"},
+            {"阿拉斯加", "Alaska", "Аляска", "America/Anchorage"},
     };
 
     private String lang(String zh, String en, String ru) {
@@ -555,7 +555,9 @@ public class TimeSettingsActivity extends Activity {
 
     private String getCityNameByTimeZone(String zoneId) {
         for (String[] entry : CITY_TIMEZONES) {
-            if (entry[1].equals(zoneId)) {
+            if (entry[3].equals(zoneId)) {
+                if (LANG_EN.equals(mLanguage)) return entry[1];
+                if (LANG_RU.equals(mLanguage)) return entry[2];
                 return entry[0];
             }
         }
@@ -580,9 +582,13 @@ public class TimeSettingsActivity extends Activity {
         final List<String> cityNames = new ArrayList<>();
         final List<String> zoneIds = new ArrayList<>();
         for (String[] entry : CITY_TIMEZONES) {
-            TimeZone tz = TimeZone.getTimeZone(entry[1]);
-            cityNames.add(entry[0] + "  (" + formatTimeZoneOffset(tz) + ")");
-            zoneIds.add(entry[1]);
+            TimeZone tz = TimeZone.getTimeZone(entry[3]);
+            String cityName;
+            if (LANG_EN.equals(mLanguage)) cityName = entry[1];
+            else if (LANG_RU.equals(mLanguage)) cityName = entry[2];
+            else cityName = entry[0];
+            cityNames.add(cityName + "  (" + formatTimeZoneOffset(tz) + ")");
+            zoneIds.add(entry[3]);
         }
 
         // 找到当前选中的位置
