@@ -342,6 +342,32 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
 
+        TextView timeLabel = new TextView(this);
+        timeLabel.setTextSize(15);
+        timeLabel.setTextColor(COLOR_WHITE);
+        timeLabel.setPadding(0, Math.round(48 * density), 0, Math.round(12 * density));
+        timeLabel.setText(lang("时间设置", "Time Settings", "Настройки времени"));
+        content.addView(timeLabel);
+
+        Button timeButton = new Button(this);
+        timeButton.setText(lang("时间设置", "Time Settings", "Настройки времени"));
+        timeButton.setAllCaps(false);
+        timeButton.setTextColor(COLOR_WHITE);
+        timeButton.setBackground(createGlassButtonBg(density));
+        timeButton.setPadding(
+                Math.round(24 * density), Math.round(14 * density),
+                Math.round(24 * density), Math.round(14 * density));
+        timeButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, TimeSettingsActivity.class);
+                startActivity(intent);
+            }
+        });
+        content.addView(timeButton, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+
         TextView langLabel = new TextView(this);
         langLabel.setTextSize(15);
         langLabel.setTextColor(COLOR_WHITE);

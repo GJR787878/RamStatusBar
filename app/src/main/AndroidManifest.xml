@@ -16,6 +16,9 @@
         <activity
             android:name=".ColorSettingsActivity"
             android:exported="false" />
+        <activity
+            android:name=".TimeSettingsActivity"
+            android:exported="false" />
         <!-- LSPosed / Xposed 模块声明 -->
         <meta-data
             android:name="xposedmodule"
