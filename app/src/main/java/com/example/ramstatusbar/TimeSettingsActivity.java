@@ -647,8 +647,6 @@ public class TimeSettingsActivity extends Activity {
                 year, month, day);
         datePicker.setTitle(lang("选择日期", "Select Date", "Выбор даты"));
         datePicker.show();
-    }
-
 
     }
 }

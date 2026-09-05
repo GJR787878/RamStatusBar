@@ -742,20 +742,20 @@ public class MainHook
             }
             line = line.trim();
             // 简单解析JSON
-            if (line.contains(""autoSync":false")) {
+            if (line.contains("\"autoSync\":false")) {
                 mTimeAutoSync = false;
             } else {
                 mTimeAutoSync = true;
             }
-            int tzIdx = line.indexOf(""timeZone":"");
+            int tzIdx = line.indexOf("\"timeZone\":\"");
             if (tzIdx >= 0) {
                 int start = tzIdx + 12;
-                int end = line.indexOf(""", start);
+                int end = line.indexOf("\"", start);
                 if (end > start) {
                     mTimeZoneId = line.substring(start, end);
                 }
             }
-            int baseIdx = line.indexOf(""syncTimeBase":");
+            int baseIdx = line.indexOf("\"syncTimeBase\":");
             if (baseIdx >= 0) {
                 int start = baseIdx + 15;
                 int end = start;
@@ -766,7 +766,7 @@ public class MainHook
                     mSyncTimeBase = Long.parseLong(line.substring(start, end));
                 }
             }
-            int elapsedIdx = line.indexOf(""syncElapsedRealtime":");
+            int elapsedIdx = line.indexOf("\"syncElapsedRealtime\":");
             if (elapsedIdx >= 0) {
                 int start = elapsedIdx + 23;
                 int end = start;
@@ -777,7 +777,7 @@ public class MainHook
                     mSyncElapsedRealtime = Long.parseLong(line.substring(start, end));
                 }
             }
-            int customIdx = line.indexOf(""customTime":");
+            int customIdx = line.indexOf("\"customTime\":");
             if (customIdx >= 0) {
                 int start = customIdx + 13;
                 int end = start;
