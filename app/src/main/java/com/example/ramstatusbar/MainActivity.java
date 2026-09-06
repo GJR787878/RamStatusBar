@@ -1,14 +1,17 @@
 package com.example.ramstatusbar;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.provider.Settings;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.view.Gravity;
@@ -433,6 +436,27 @@ public class MainActivity extends Activity {
                 "RamStatusBar\nМодуль LSPosed для отображения RAM в строке состояния.\nТребуются Root + LSPosed."));
         content.addView(aboutBody);
 
+        // 显示当前设备信息按钮
+        TextView deviceInfoLabel = new TextView(this);
+        deviceInfoLabel.setTextSize(15);
+        deviceInfoLabel.setTextColor(COLOR_WHITE);
+        deviceInfoLabel.setPadding(0, Math.round(48 * density), 0, Math.round(12 * density));
+        deviceInfoLabel.setText(lang("设备信息", "Device Info", "Информация об устройстве"));
+        content.addView(deviceInfoLabel);
+
+        Button deviceInfoButton = new Button(this);
+        deviceInfoButton.setText(lang("显示当前设备信息", "Show Device Info", "Показать информацию об устройстве"));
+        deviceInfoButton.setAllCaps(false);
+        deviceInfoButton.setTextColor(COLOR_WHITE);
+        deviceInfoButton.setBackground(createGlassButtonBg(density));
+        deviceInfoButton.setPadding(
+                Math.round(24 * density), Math.round(14 * density),
+                Math.round(24 * density), Math.round(14 * density));
+        deviceInfoButton.setOnClickListener(v -> showDeviceInfoDialog());
+        content.addView(deviceInfoButton, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+
         scrollView.addView(content, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -673,6 +697,39 @@ public class MainActivity extends Activity {
         } catch (Throwable t) {
             return 1;
         }
+    }
+
+    // ==================== 设备信息对话框 ====================
+    private void showDeviceInfoDialog() {
+        StringBuilder sb = new StringBuilder();
+        try {
+            android.app.ActivityManager am = (android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE);
+            android.app.ActivityManager.MemoryInfo memInfo = new android.app.ActivityManager.MemoryInfo();
+            am.getMemoryInfo(memInfo);
+            long totalMb = memInfo.totalMem / (1024 * 1024);
+            long availMb = memInfo.availMem / (1024 * 1024);
+            sb.append(lang("总内存: ", "Total RAM: ", "ОЗУ: ")).append(totalMb).append(" MB\n");
+            sb.append(lang("可用内存: ", "Available: ", "Доступно: ")).append(availMb).append(" MB\n\n");
+        } catch (Throwable ignored) {}
+
+        try {
+            String androidId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
+            sb.append(lang("Android ID: ", "Android ID: ", "Android ID: ")).append(androidId).append("\n");
+        } catch (Throwable ignored) {}
+
+        sb.append(lang("型号: ", "Model: ", "Модель: ")).append(Build.MODEL).append("\n");
+        sb.append(lang("厂商: ", "Manufacturer: ", "Производитель: ")).append(Build.MANUFACTURER).append("\n");
+        sb.append(lang("品牌: ", "Brand: ", "Бренд: ")).append(Build.BRAND).append("\n");
+        sb.append(lang("Android 版本: ", "Android version: ", "Версия Android: ")).append(Build.VERSION.RELEASE).append("\n");
+        sb.append(lang("SDK: ", "SDK: ", "SDK: ")).append(Build.VERSION.SDK_INT).append("\n");
+        sb.append(lang("Build: ", "Build: ", "Build: ")).append(Build.DISPLAY).append("\n");
+        sb.append(lang("指纹: ", "Fingerprint: ", "Отпечаток: ")).append(Build.FINGERPRINT);
+
+        new AlertDialog.Builder(this)
+                .setTitle(lang("当前设备信息", "Current Device Info", "Текущая информация об устройстве"))
+                .setMessage(sb.toString())
+                .setPositiveButton(lang("确定", "OK", "ОК"), null)
+                .show();
     }
 
     // ==================== 模式读写 ====================
