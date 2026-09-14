@@ -687,12 +687,15 @@ public class MainHook
                             .measureText("0");
 
             /*
-             * neededWidth 已包含左右各半个字符的胶囊内边距，
-             * 直接取整作为视图宽度。
+             * neededWidth 已包含左右各半个字符的胶囊内边距。
+             *
+             * 再整体减掉半个字符，让胶囊更紧凑，
+             * 给右边"最近应用"等内容让出空间。
              */
             int desired =
                     Math.round(
                             neededWidthPx
+                                    - oneCharPx * 0.5f
                     );
 
             if (desired < 1) {
