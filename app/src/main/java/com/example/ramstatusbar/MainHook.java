@@ -90,6 +90,20 @@ public class MainHook
     private final Map<TextView, Integer>
             mFixedWidthPx = new HashMap<>();
 
+    /*
+     * 宽度是否已真正应用到 LayoutParams。
+     * 构造阶段视图未挂载，LayoutParams 为 null，
+     * 挂载后需要重试一次，否则宽度永远不会生效。
+     */
+    private final Map<TextView, Boolean>
+            mWidthApplied = new HashMap<>();
+
+    /*
+     * 每种视图的"所有可能内容最大宽度"缓存（只计算一次）。
+     */
+    private final Map<TextView, Float>
+            mMaxWidthPx = new HashMap<>();
+
     private boolean mApplyingOurText =
             false;
     // 时间配置缓存
@@ -243,10 +257,13 @@ public class MainHook
         clockView.setBackground(null);
 
         /*
-         * 文字在固定宽度背景内水平+垂直居中，
-         * 保证任何模式、任何数字宽度下都居中不溢出。
+         * 文字整体靠左对齐（垂直保持居中），
+         * 不再水平居中。
          */
-        clockView.setGravity(Gravity.CENTER);
+        clockView.setGravity(
+                Gravity.LEFT
+                        | Gravity.CENTER_VERTICAL
+        );
 
         /*
          * 关闭字体行高自带 padding，
@@ -255,16 +272,25 @@ public class MainHook
         clockView.setIncludeFontPadding(false);
 
         /*
-         * 清零自带 padding，
-         * 让居中完全以背景(整个 View)为基准，
-         * 避免水平/垂直内边距把文字挤偏。
+         * 左右各保留半个字符的胶囊内边距，
+         * 文字靠左但不会贴到胶囊圆角上。
          */
-        clockView.setPadding(0, 0, 0, 0);
+        float halfCharPx =
+                clockView.getPaint()
+                        .measureText("0")
+                        * CAPSULE_PADDING_CHARS;
+
+        clockView.setPadding(
+                Math.round(halfCharPx),
+                0,
+                Math.round(halfCharPx),
+                0
+        );
 
         /*
          * 强制单行、禁用省略号：
          * 即便内容临时超宽也绝不换行/出框，
-         * 保证文字永远只在背景内水平居中。
+         * 保证文字永远只在背景内水平靠左。
          */
         clockView.setSingleLine(true);
         clockView.setEllipsize(null);
@@ -478,50 +504,13 @@ public class MainHook
                             .measureText("0");
 
             /*
-             * 固定胶囊宽度 = 所有可能文字的最大宽度，
-             * 避免切换 CPU/GPU/内存显示或数字变化时胶囊伸缩、
-             * 影响旁边的内容。
+             * 固定胶囊宽度 = 所有可能出现内容的精确最大宽度
+             * （时间/内存/CPU/GPU 逐一测量，1 与 0 等不同数字
+             * 的实际显示宽度不同，不能只按当前内容估算）。
              */
             float maxWidth =
-                    clockView.getPaint()
-                            .measureText(
-                                    normalContent
-                            );
-
-            maxWidth =
-                    Math.max(
-                            maxWidth,
-                            clockView.getPaint()
-                                    .measureText(
-                                            time
-                                    )
-                    );
-
-            maxWidth =
-                    Math.max(
-                            maxWidth,
-                            clockView.getPaint()
-                                    .measureText(
-                                            ram
-                                    )
-                    );
-
-            maxWidth =
-                    Math.max(
-                            maxWidth,
-                            clockView.getPaint()
-                                    .measureText(
-                                            "CPU100% 100°C"
-                                    )
-                    );
-
-            maxWidth =
-                    Math.max(
-                            maxWidth,
-                            clockView.getPaint()
-                                    .measureText(
-                                            "GPU100% 100°C"
-                                    )
+                    getMaxContentWidthPx(
+                            clockView
                     );
 
             /*
@@ -535,9 +524,6 @@ public class MainHook
                     maxWidth
                             + padding * 2;
 
-            /*
-             * 比以前的固定宽度少半个字符。
-             */
             ensureFixedWidth(
                     clockView,
                     neededWidth
@@ -699,14 +685,12 @@ public class MainHook
                             .measureText("0");
 
             /*
-             * 在需要宽度上增加左右空间，
-             * 然后减掉半个字符，
-             * 保留你之前要求的效果。
+             * neededWidth 已包含左右各半个字符的胶囊内边距，
+             * 直接取整作为视图宽度。
              */
             int desired =
                     Math.round(
                             neededWidthPx
-                                    - oneCharPx * 0.5f
                     );
 
             if (desired < 1) {
@@ -719,6 +703,11 @@ public class MainHook
                             clockView
                     );
 
+            Boolean applied =
+                    mWidthApplied.get(
+                            clockView
+                    );
+
             /*
              * 宽度只扩大，不频繁缩小。
              *
@@ -726,31 +715,223 @@ public class MainHook
              * CPU/GPU 数字变化不断抖动。
              */
             if (current != null
-                    && desired <= current) {
+                    && desired <= current
+                    && Boolean.TRUE.equals(applied)) {
 
                 return;
             }
 
-            mFixedWidthPx.put(
-                    clockView,
-                    desired
-            );
+            if (current == null
+                    || desired > current) {
 
+                mFixedWidthPx.put(
+                        clockView,
+                        desired
+                );
+            }
+
+            /*
+             * 关键修复：构造阶段视图尚未挂载到父布局，
+             * getLayoutParams() 返回 null，宽度永远不会生效；
+             * 挂载后必须重试一次才能真正应用。
+             */
             android.view.ViewGroup.LayoutParams lp =
                     clockView.getLayoutParams();
 
             if (lp != null) {
 
                 lp.width =
-                        desired;
+                        mFixedWidthPx.get(
+                                clockView
+                        );
 
                 clockView.setLayoutParams(
                         lp
+                );
+
+                /*
+                 * 文字靠左：左右保留半个字符内边距，
+                 * 避免文字贴到胶囊圆角。
+                 */
+                int padPx =
+                        Math.round(
+                                oneCharPx
+                                        * CAPSULE_PADDING_CHARS
+                        );
+
+                clockView.setPadding(
+                        padPx,
+                        0,
+                        padPx,
+                        0
+                );
+
+                mWidthApplied.put(
+                        clockView,
+                        Boolean.TRUE
                 );
             }
 
         } catch (Throwable ignored) {
         }
+    }
+
+    /*
+     * 返回该视图"所有可能出现内容"的精确最大宽度，
+     * 每种视图只计算一次并缓存。
+     */
+    private float getMaxContentWidthPx(
+            TextView clockView) {
+
+        Float cached =
+                mMaxWidthPx.get(
+                        clockView
+                );
+
+        if (cached != null) {
+
+            return cached;
+        }
+
+        float width =
+                computeMaxContentWidth(
+                        clockView
+                );
+
+        mMaxWidthPx.put(
+                clockView,
+                width
+        );
+
+        return width;
+    }
+
+    /*
+     * 精确计算所有可能出现内容的最大宽度。
+     *
+     * 非等宽字体下不同数字（如 1 与 0）的实际显示宽度不同，
+     * 因此逐一测量所有时间 / 内存 / CPU / GPU 组合，取最宽值，
+     * 保证胶囊宽度固定后任何内容都不会超出或挤压旁边内容。
+     */
+    private float computeMaxContentWidth(
+            TextView clockView) {
+
+        android.graphics.Paint paint =
+                clockView.getPaint();
+
+        float max = 0f;
+        String widestTime = "00:00";
+        String widestRam = "0.0G/0G";
+
+        // 1) 时间 HH:mm：一天全部 1440 种组合
+        for (int h = 0; h < 24; h++) {
+
+            for (int m = 0; m < 60; m++) {
+
+                String t =
+                        String.format(
+                                Locale.US,
+                                "%02d:%02d",
+                                h,
+                                m
+                        );
+
+                float w =
+                        paint.measureText(
+                                t
+                        );
+
+                if (w > max) {
+
+                    max = w;
+                    widestTime = t;
+                }
+            }
+        }
+
+        // 2) 内存 X.XG/XXG：可用内存 0.0-99.9G × 常见总内存
+        int[] tiers = {
+                3, 4, 6, 8, 12, 16, 18, 24, 32, 64, 128
+        };
+
+        for (int i = 0; i <= 999; i++) {
+
+            double avail =
+                    i / 10.0;
+
+            for (int total :
+                    tiers) {
+
+                String r =
+                        String.format(
+                                Locale.getDefault(),
+                                "%.1fG/%dG",
+                                avail,
+                                total
+                        );
+
+                float w =
+                        paint.measureText(
+                                r
+                        );
+
+                if (w > max) {
+
+                    max = w;
+                    widestRam = r;
+                }
+            }
+        }
+
+        // 3) 时间 + 内存 组合（以空格分隔，直接拼接测量）
+        float combined =
+                paint.measureText(
+                        widestTime
+                                + " "
+                                + widestRam
+                );
+
+        if (combined > max) {
+
+            max = combined;
+        }
+
+        // 4) CPU / GPU：占用率 0-100%，温度 0-120°C
+        for (int p = 0; p <= 100; p++) {
+
+            for (int t = 0; t <= 120; t++) {
+
+                float w =
+                        paint.measureText(
+                                "CPU"
+                                        + p
+                                        + "% "
+                                        + t
+                                        + "°C"
+                        );
+
+                if (w > max) {
+
+                    max = w;
+                }
+
+                w =
+                        paint.measureText(
+                                "GPU"
+                                        + p
+                                        + "% "
+                                        + t
+                                        + "°C"
+                        );
+
+                if (w > max) {
+
+                    max = w;
+                }
+            }
+        }
+
+        return max;
     }
 
     // 读取时间配置（带缓存，每秒最多读一次）
