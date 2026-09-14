@@ -99,6 +99,8 @@ public class MainHook
     private long mSyncTimeBase = 0;
     private long mSyncElapsedRealtime = 0;
     private long mCustomTime = 0;
+    // 同步瞬间的系统时钟（UTC毫秒），优先用它消除硬件时钟漂移
+    private long mSyncSystemTime = 0;
 
     private Integer mLastCpuPercent = null;
     private Integer mLastGpuPercent = null;
@@ -758,6 +760,8 @@ public class MainHook
                     try { mSyncTimeBase = Long.parseLong(value); } catch (Throwable t) {}
                 } else if ("syncElapsedRealtime".equals(key)) {
                     try { mSyncElapsedRealtime = Long.parseLong(value); } catch (Throwable t) {}
+                } else if ("syncSystemTime".equals(key)) {
+                    try { mSyncSystemTime = Long.parseLong(value); } catch (Throwable t) {}
                 }
             }
             br.close();
@@ -767,14 +771,21 @@ public class MainHook
         XposedBridge.log(TAG + ": 时间配置 autoSync=" + mTimeAutoSync 
                 + " timeZone=" + mTimeZoneId 
                 + " syncTimeBase=" + mSyncTimeBase 
+                + " syncSystemTime=" + mSyncSystemTime
                 + " customTime=" + mCustomTime);
     }
 
     // 根据时间配置计算当前显示时间（UTC毫秒）
     private long getDisplayTime() {
         ensureTimeConfig();
+        if (mTimeAutoSync && mSyncTimeBase > 0 && mSyncSystemTime > 0) {
+            // 以系统时钟为基准 + NTP 测得偏移量。
+            // 系统时钟会被运营商/网络 NTP 持续校准，跟随它显示不会累积硬件时钟漂移，
+            // 也不会在重启后因 elapsedRealtime 归零而跳错。
+            return System.currentTimeMillis() + (mSyncTimeBase - mSyncSystemTime);
+        }
         if (mTimeAutoSync && mSyncTimeBase > 0 && mSyncElapsedRealtime > 0) {
-            // 使用NTP同步的时间基准
+            // 兼容旧版本配置：仍使用一次性NTP锚点 + 硬件时钟投影（存在每日漂移）
             long elapsed = android.os.SystemClock.elapsedRealtime() - mSyncElapsedRealtime;
             return mSyncTimeBase + elapsed;
         }

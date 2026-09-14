@@ -49,6 +49,8 @@ public class TimeSettingsActivity extends Activity {
     // NTP同步时间基准
     private long mSyncTimeBase = 0;
     private long mSyncElapsedRealtime = 0;
+    // 同步瞬间的系统时钟（UTC毫秒），用于消除硬件时钟漂移
+    private long mSyncSystemTime = 0;
 
     private TextView mAutoSyncStatus;
     private TextView mTimeZoneStatus;
@@ -136,6 +138,7 @@ public class TimeSettingsActivity extends Activity {
             sb.append("customTime=").append(mCustomTime).append("\n");
             sb.append("syncTimeBase=").append(mSyncTimeBase).append("\n");
             sb.append("syncElapsedRealtime=").append(mSyncElapsedRealtime).append("\n");
+            sb.append("syncSystemTime=").append(mSyncSystemTime).append("\n");
             String content = sb.toString();
             
             // 通过root权限写入文件
@@ -211,9 +214,11 @@ public class TimeSettingsActivity extends Activity {
                     public void run() {
                         if (ntpTime > 0) {
                             mSyncTimeBase = ntpTime;
+                            mSyncSystemTime = System.currentTimeMillis();
                             mSyncElapsedRealtime = android.os.SystemClock.elapsedRealtime();
                             getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
                                     .putLong("sync_time_base", mSyncTimeBase)
+                                    .putLong("sync_system_time", mSyncSystemTime)
                                     .putLong("sync_elapsed_realtime", mSyncElapsedRealtime).apply();
                             saveTimeConfig();
                             Toast.makeText(TimeSettingsActivity.this,
