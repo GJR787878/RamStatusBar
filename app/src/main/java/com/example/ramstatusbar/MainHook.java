@@ -510,8 +510,7 @@ public class MainHook
              */
             float maxWidth =
                     getMaxContentWidthPx(
-                            clockView,
-                            ram
+                            clockView
                     );
 
             /*
@@ -780,13 +779,9 @@ public class MainHook
     /*
      * 返回该视图"所有可能出现内容"的精确最大宽度，
      * 每种视图只计算一次并缓存。
-     *
-     * ram 用于确定本机实际总内存上限，
-     * 避免按不切实际的大内存设备撑宽胶囊。
      */
     private float getMaxContentWidthPx(
-            TextView clockView,
-            String ram) {
+            TextView clockView) {
 
         Float cached =
                 mMaxWidthPx.get(
@@ -800,8 +795,7 @@ public class MainHook
 
         float width =
                 computeMaxContentWidth(
-                        clockView,
-                        ram
+                        clockView
                 );
 
         mMaxWidthPx.put(
@@ -813,62 +807,24 @@ public class MainHook
     }
 
     /*
-     * 从内存字符串中解析总内存（GB）。
-     * 例如 "2.9G/8G" → 8。
-     */
-    private int parseTotalGb(
-            String ram) {
-
-        try {
-
-            int slash =
-                    ram.indexOf(
-                            '/'
-                    );
-
-            if (slash >= 0) {
-
-                String totalStr =
-                        ram.substring(
-                                        slash + 1
-                                )
-                                .replace(
-                                        "G",
-                                        ""
-                                )
-                                .trim();
-
-                return Integer.parseInt(
-                        totalStr
-                );
-            }
-
-        } catch (Throwable ignored) {
-        }
-
-        return 8;
-    }
-
-    /*
      * 精确计算所有可能出现内容的最大宽度。
      *
-     * G / : / 等字符是固定的，只有数字会变化；
+     * G / : / . 等字符是固定的，只有数字会变化；
      * 非等宽字体下不同数字（如 1 与 0）实际显示宽度不同，
      * 因此逐一测量所有真实可能出现的组合，取最宽值。
      *
-     * 内存上限按本机实际总内存确定（不再假设 128G），
-     * 温度上限 100°C，避免胶囊被不切实际的最大值撑宽。
+     * 内存覆盖常见规格 6/8/12/16/24G，温度上限 100°C，
+     * 避免胶囊被不切实际的最大值撑宽。
      */
     private float computeMaxContentWidth(
-            TextView clockView,
-            String ram) {
+            TextView clockView) {
 
         android.graphics.Paint paint =
                 clockView.getPaint();
 
         float max = 0f;
         String widestTime = "00:00";
-        String widestRam = ram;
+        String widestRam = "0.0G/6G";
 
         // 1) 时间 HH:mm：一天全部 1440 种组合
         for (int h = 0; h < 24; h++) {
@@ -896,35 +852,38 @@ public class MainHook
             }
         }
 
-        // 2) 内存 X.XG/XXG：可用内存 0.0 ~ 本机总内存，
-        //    总内存固定为本机实际值（如 8G 设备就是 8G）
-        int totalGb =
-                parseTotalGb(
-                        ram
-                );
+        // 2) 内存 X.XG/XXG：常见总内存 6/8/12/16/24G，
+        //    每种规格下可用内存 0.0 ~ 总内存
+        int[] ramTiers = {
+                6, 8, 12, 16, 24
+        };
 
-        for (int i = 0; i <= totalGb * 10; i++) {
+        for (int total :
+                ramTiers) {
 
-            double avail =
-                    i / 10.0;
+            for (int i = 0; i <= total * 10; i++) {
 
-            String r =
-                    String.format(
-                            Locale.getDefault(),
-                            "%.1fG/%dG",
-                            avail,
-                            totalGb
-                    );
+                double avail =
+                        i / 10.0;
 
-            float w =
-                    paint.measureText(
-                            r
-                    );
+                String r =
+                        String.format(
+                                Locale.getDefault(),
+                                "%.1fG/%dG",
+                                avail,
+                                total
+                        );
 
-            if (w > max) {
+                float w =
+                        paint.measureText(
+                                r
+                        );
 
-                max = w;
-                widestRam = r;
+                if (w > max) {
+
+                    max = w;
+                    widestRam = r;
+                }
             }
         }
 
