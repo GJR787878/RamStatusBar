@@ -71,10 +71,11 @@ public class MainHook
     /*
      * 胶囊左右额外空间。
      *
-     * 保留半个字符宽度的设计。
+     * 从半个字符收紧到四分之一字符，
+     * 让胶囊更紧凑，避免挤掉右边的系统图标/文字。
      */
     private static final float
-            CAPSULE_PADDING_CHARS = 0.5f;
+            CAPSULE_PADDING_CHARS = 0.25f;
 
     private Handler mHandler;
 
