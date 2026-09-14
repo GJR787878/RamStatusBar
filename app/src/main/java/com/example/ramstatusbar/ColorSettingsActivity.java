@@ -425,19 +425,11 @@ public class ColorSettingsActivity extends Activity {
     }
 
     private boolean saveColorToFile(int color) {
-        try {
-            String hex = String.format(Locale.US, "%08X", color);
-            Process su = Runtime.getRuntime().exec("su");
-            DataOutputStream os = new DataOutputStream(su.getOutputStream());
-            os.writeBytes("echo " + hex + " > " + COLOR_FILE + "\n");
-            os.writeBytes("chmod 666 " + COLOR_FILE + "\n");
-            os.writeBytes("exit\n");
-            os.flush();
-            int result = su.waitFor();
-            return result == 0;
-        } catch (Throwable t) {
-            return false;
-        }
+        String hex = String.format(Locale.US, "%08X", color);
+        return RootUtils.exec(
+                "echo " + hex + " > " + COLOR_FILE
+                        + " && chmod 666 " + COLOR_FILE
+        );
     }
 
     private void updatePreview() {

@@ -142,15 +142,12 @@ public class TimeSettingsActivity extends Activity {
             String content = sb.toString();
             
             // 通过root权限写入文件
-            Process su = Runtime.getRuntime().exec("su");
-            java.io.DataOutputStream os = new java.io.DataOutputStream(su.getOutputStream());
-            // 使用printf写入，避免echo的转义问题
-            os.writeBytes("printf '" + content.replace("'", "'\''") + "' > " + TIME_CONFIG_FILE + "\n");
-            os.writeBytes("chmod 666 " + TIME_CONFIG_FILE + "\n");
-            os.writeBytes("exit\n");
-            os.flush();
-            int result = su.waitFor();
-            if (result != 0) {
+            boolean ok = RootUtils.exec(
+                    "printf '" + content.replace("'", "'\''")
+                            + "' > " + TIME_CONFIG_FILE
+                            + " && chmod 666 " + TIME_CONFIG_FILE
+            );
+            if (!ok) {
                 // root写入失败，尝试直接写入（可能没有权限）
                 try {
                     java.io.FileWriter writer = new java.io.FileWriter(TIME_CONFIG_FILE);

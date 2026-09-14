@@ -473,29 +473,55 @@ public class MainHook
                 }
             }
 
-            float normalWidth =
-                    clockView.getPaint()
-                            .measureText(
-                                    normalContent
-                            );
-
-            float contentWidth =
-                    clockView.getPaint()
-                            .measureText(
-                                    rawContent
-                            );
-
             float oneCharWidth =
                     clockView.getPaint()
                             .measureText("0");
 
             /*
-             * 保证当前 CPU/GPU 文字也有足够宽度。
+             * 固定胶囊宽度 = 所有可能文字的最大宽度，
+             * 避免切换 CPU/GPU/内存显示或数字变化时胶囊伸缩、
+             * 影响旁边的内容。
              */
-            float baseWidth =
+            float maxWidth =
+                    clockView.getPaint()
+                            .measureText(
+                                    normalContent
+                            );
+
+            maxWidth =
                     Math.max(
-                            normalWidth,
-                            contentWidth
+                            maxWidth,
+                            clockView.getPaint()
+                                    .measureText(
+                                            time
+                                    )
+                    );
+
+            maxWidth =
+                    Math.max(
+                            maxWidth,
+                            clockView.getPaint()
+                                    .measureText(
+                                            ram
+                                    )
+                    );
+
+            maxWidth =
+                    Math.max(
+                            maxWidth,
+                            clockView.getPaint()
+                                    .measureText(
+                                            "CPU100% 100°C"
+                                    )
+                    );
+
+            maxWidth =
+                    Math.max(
+                            maxWidth,
+                            clockView.getPaint()
+                                    .measureText(
+                                            "GPU100% 100°C"
+                                    )
                     );
 
             /*
@@ -506,7 +532,7 @@ public class MainHook
                             * CAPSULE_PADDING_CHARS;
 
             float neededWidth =
-                    baseWidth
+                    maxWidth
                             + padding * 2;
 
             /*

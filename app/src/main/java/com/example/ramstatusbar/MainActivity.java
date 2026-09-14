@@ -753,17 +753,9 @@ public class MainActivity extends Activity {
     }
 
     private boolean writeModeToFile(int mode) {
-        try {
-            Process su = Runtime.getRuntime().exec("su");
-            DataOutputStream os = new DataOutputStream(su.getOutputStream());
-            os.writeBytes("echo " + mode + " > " + CONFIG_FILE + "\n");
-            os.writeBytes("chmod 666 " + CONFIG_FILE + "\n");
-            os.writeBytes("exit\n");
-            os.flush();
-            int result = su.waitFor();
-            return result == 0;
-        } catch (Throwable t) {
-            return false;
-        }
+        return RootUtils.exec(
+                "echo " + mode + " > " + CONFIG_FILE
+                        + " && chmod 666 " + CONFIG_FILE
+        );
     }
 }
