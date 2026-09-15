@@ -19,6 +19,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -433,16 +434,43 @@ public class MainActivity extends Activity {
         content.addView(widthLabel);
 
         final TextView widthValue = new TextView(this);
-        widthValue.setTextSize(13);
-        widthValue.setTextColor(0xFFAAAAAA);
-        widthValue.setPadding(0, 0, 0, Math.round(8 * density));
-        content.addView(widthValue);
+        widthValue.setTextSize(14);
+        widthValue.setTextColor(COLOR_ACCENT);
+        widthValue.setSingleLine(true);
+        widthValue.setClickable(true);
+        widthValue.setFocusable(true);
+        /*
+         * 用蓝色边框 + 半透明蓝底把数值框起来，提示可点击手动输入。
+         */
+        GradientDrawable widthBox = new GradientDrawable();
+        widthBox.setShape(GradientDrawable.RECTANGLE);
+        widthBox.setCornerRadius(Math.round(10 * density));
+        widthBox.setStroke(Math.round(2 * density), COLOR_ACCENT);
+        widthBox.setColor(0x1A0A84FF);
+        widthValue.setBackground(widthBox);
+        widthValue.setPadding(
+                Math.round(20 * density), Math.round(10 * density),
+                Math.round(20 * density), Math.round(10 * density));
+        content.addView(widthValue, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
 
         final SeekBar widthSeek = new SeekBar(this);
         widthSeek.setMax(300);
         int curWidth = readCurrentWidth();
         widthSeek.setProgress(Math.min(curWidth, 300));
         updateWidthLabel(widthValue, curWidth);
+
+        /*
+         * 点击数值框 → 弹出数字输入对话框，手动输入 0~300。
+         */
+        widthValue.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showWidthInputDialog(widthSeek, widthValue);
+            }
+        });
+
         widthSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             private long lastWrite = 0;
 
@@ -926,5 +954,121 @@ public class MainActivity extends Activity {
         tv.setText(px <= 0
                 ? lang("自动", "Auto", "Авто")
                 : px + " px");
+    }
+
+    /*
+     * 点击胶囊宽度数值框 → 弹出数字输入对话框。
+     * 输入 0~300（像素），0 = 自动；确认后写入并同步滑块。
+     */
+    private void showWidthInputDialog(
+            final SeekBar seek,
+            final TextView label) {
+
+        final EditText input =
+                new EditText(
+                        MainActivity.this
+                );
+
+        input.setInputType(
+                android.text.InputType.TYPE_CLASS_NUMBER
+        );
+
+        input.setText(
+                String.valueOf(
+                        readCurrentWidth()
+                )
+        );
+
+        input.setSelection(
+                input.getText().length()
+        );
+
+        new AlertDialog.Builder(
+                MainActivity.this
+        )
+                .setTitle(
+                        lang(
+                                "手动输入胶囊宽度",
+                                "Enter capsule width",
+                                "Введите ширину капсулы"
+                        )
+                )
+                .setMessage(
+                        lang(
+                                "输入 0~300（像素），0 = 自动",
+                                "Enter 0~300 (px), 0 = Auto",
+                                "Введите 0~300 (px), 0 = Авто"
+                        )
+                )
+                .setView(input)
+                .setPositiveButton(
+                        lang(
+                                "确定",
+                                "OK",
+                                "ОК"
+                        ),
+                        (d, w) -> {
+
+                            try {
+
+                                int value =
+                                        Integer.parseInt(
+                                                input.getText()
+                                                        .toString()
+                                                        .trim()
+                                        );
+
+                                if (value < 0
+                                        || value > 300) {
+
+                                    Toast.makeText(
+                                            MainActivity.this,
+                                            lang(
+                                                    "请输入 0~300 之间的数值",
+                                                    "Enter a value between 0 and 300",
+                                                    "Введите значение от 0 до 300"
+                                            ),
+                                            Toast.LENGTH_SHORT
+                                    ).show();
+
+                                    return;
+                                }
+
+                                writeWidthToFile(
+                                        value
+                                );
+
+                                updateWidthLabel(
+                                        label,
+                                        value
+                                );
+
+                                seek.setProgress(
+                                        value
+                                );
+
+                            } catch (Throwable t) {
+
+                                Toast.makeText(
+                                        MainActivity.this,
+                                        lang(
+                                                "输入无效",
+                                                "Invalid input",
+                                                "Неверный ввод"
+                                        ),
+                                        Toast.LENGTH_SHORT
+                                ).show();
+                            }
+                        }
+                )
+                .setNegativeButton(
+                        lang(
+                                "取消",
+                                "Cancel",
+                                "Отмена"
+                        ),
+                        null
+                )
+                .show();
     }
 }
