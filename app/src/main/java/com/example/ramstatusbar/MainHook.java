@@ -50,6 +50,14 @@ public class MainHook
     private static final String TIME_CONFIG_FILE =
             "/data/local/tmp/ramstatusbar_time";
 
+    /*
+     * 手动胶囊宽度（像素）。0 或文件不存在 = 自动。
+     * 由 MainActivity 的滑块写入，SystemUI 每秒轮询读取，
+     * 因此调节后无需重启即可实时生效。
+     */
+    private static final String WIDTH_FILE =
+            "/data/local/tmp/ramstatusbar_width";
+
     private static final int MODE_TIME_ONLY = 0;
     private static final int MODE_TIME_RAM = 1;
     private static final int MODE_RAM_ONLY = 2;
@@ -676,31 +684,103 @@ public class MainHook
         }
     }
 
+    /*
+     * 读取手动胶囊宽度（像素）。0 或文件不存在 = 自动。
+     * 每秒轮询时调用，天然实时（无需重启）。
+     */
+    private int readManualWidthPx() {
+
+        try {
+
+            File f =
+                    new File(
+                            WIDTH_FILE
+                    );
+
+            if (!f.exists()) {
+
+                return 0;
+            }
+
+            BufferedReader br =
+                    new BufferedReader(
+                            new FileReader(f)
+                    );
+
+            String line =
+                    br.readLine();
+
+            br.close();
+
+            if (line == null) {
+
+                return 0;
+            }
+
+            int value =
+                    Integer.parseInt(
+                            line.trim()
+                    );
+
+            /*
+             * 0 或负数 = 自动；上限 600px 防呆。
+             */
+            if (value <= 0) {
+
+                return 0;
+            }
+
+            return Math.min(
+                    value,
+                    600
+            );
+
+        } catch (Throwable t) {
+
+            return 0;
+        }
+    }
+
     private void ensureFixedWidth(
             TextView clockView,
             float neededWidthPx) {
 
         try {
 
+            int manual =
+                    readManualWidthPx();
+
             float oneCharPx =
                     clockView.getPaint()
                             .measureText("0");
 
-            /*
-             * neededWidth 已包含左右各半个字符的胶囊内边距。
-             *
-             * 再整体减掉半个字符，让胶囊更紧凑，
-             * 给右边"最近应用"等内容让出空间。
-             */
-            int desired =
-                    Math.round(
-                            neededWidthPx
-                                    - oneCharPx * 0.5f
-                    );
+            int desired;
 
-            if (desired < 1) {
+            if (manual > 0) {
 
-                desired = 1;
+                /*
+                 * 手动模式：完全使用滑块设定的宽度。
+                 */
+                desired =
+                        manual;
+
+            } else {
+
+                /*
+                 * 自动模式：neededWidth 已包含左右各半个字符的
+                 * 胶囊内边距，再整体减掉半个字符让胶囊更紧凑，
+                 * 给右边"最近应用"等内容让出空间。
+                 */
+                desired =
+                        Math.round(
+                                neededWidthPx
+                                        - oneCharPx * 0.5f
+                        );
+
+                if (desired < 1) {
+
+                    desired = 1;
+                }
             }
 
             Integer current =
@@ -714,26 +794,24 @@ public class MainHook
                     );
 
             /*
-             * 宽度只扩大，不频繁缩小。
+             * 自动模式：宽度只扩大，不频繁缩小，
+             * 防止状态栏因为 CPU/GPU 数字变化不断抖动。
              *
-             * 这样可以防止状态栏因为
-             * CPU/GPU 数字变化不断抖动。
+             * 手动模式：跳过该限制，每次强制应用，
+             * 让滑块调节（包括调小）实时生效。
              */
-            if (current != null
+            if (manual <= 0
+                    && current != null
                     && desired <= current
                     && Boolean.TRUE.equals(applied)) {
 
                 return;
             }
 
-            if (current == null
-                    || desired > current) {
-
-                mFixedWidthPx.put(
-                        clockView,
-                        desired
-                );
-            }
+            mFixedWidthPx.put(
+                    clockView,
+                    desired
+            );
 
             /*
              * 关键修复：构造阶段视图尚未挂载到父布局，

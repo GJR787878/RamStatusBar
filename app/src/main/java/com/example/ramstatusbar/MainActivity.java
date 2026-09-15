@@ -25,16 +25,27 @@ import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileReader;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
 
     private static final String CONFIG_FILE =
             "/data/local/tmp/ramstatusbar_mode";
+    /*
+     * 手动胶囊宽度（像素）。0 = 自动。
+     * 与 MainHook 的 WIDTH_FILE 一致，滑块写入后
+     * SystemUI 每秒轮询，无需重启即可实时生效。
+     */
+    private static final String WIDTH_FILE =
+            "/data/local/tmp/ramstatusbar_width";
     private static final int MODE_TIME_ONLY = 0;
     private static final int MODE_TIME_RAM = 1;
     private static final int MODE_RAM_ONLY = 2;
@@ -412,6 +423,63 @@ public class MainActivity extends Activity {
         content.addView(colorButton, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        // ===== 胶囊长度滑块 =====
+        TextView widthLabel = new TextView(this);
+        widthLabel.setTextSize(15);
+        widthLabel.setTextColor(COLOR_WHITE);
+        widthLabel.setPadding(0, Math.round(48 * density), 0, Math.round(12 * density));
+        widthLabel.setText(lang("胶囊长度", "Capsule width", "Ширина капсулы"));
+        content.addView(widthLabel);
+
+        final TextView widthValue = new TextView(this);
+        widthValue.setTextSize(13);
+        widthValue.setTextColor(0xFFAAAAAA);
+        widthValue.setPadding(0, 0, 0, Math.round(8 * density));
+        content.addView(widthValue);
+
+        final SeekBar widthSeek = new SeekBar(this);
+        widthSeek.setMax(300);
+        int curWidth = readCurrentWidth();
+        widthSeek.setProgress(Math.min(curWidth, 300));
+        updateWidthLabel(widthValue, curWidth);
+        widthSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            private long lastWrite = 0;
+
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (!fromUser) {
+                    return;
+                }
+                updateWidthLabel(widthValue, progress);
+                // 拖动过程节流写入（约每 200ms 一次），SystemUI 每秒轮询应用
+                long now = System.currentTimeMillis();
+                if (now - lastWrite > 200) {
+                    lastWrite = now;
+                    writeWidthToFile(progress);
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                // 松手时确保最终值已写入
+                writeWidthToFile(seekBar.getProgress());
+            }
+        });
+        content.addView(widthSeek);
+
+        TextView widthHint = new TextView(this);
+        widthHint.setTextSize(12);
+        widthHint.setTextColor(0xFF888888);
+        widthHint.setText(lang(
+                "0 = 自动（按内容精确适配）\n拖动滑块实时生效，约 1 秒内更新",
+                "0 = Auto (fits content precisely)\nDrag to adjust, takes effect within ~1 second",
+                "0 = Авто (по содержимому)\nПеретащите — применится в течение ~1 секунды"));
+        content.addView(widthHint);
 
         TextView timeLabel = new TextView(this);
         timeLabel.setTextSize(15);
@@ -825,5 +893,38 @@ public class MainActivity extends Activity {
                 "echo " + mode + " > " + CONFIG_FILE
                         + " && chmod 666 " + CONFIG_FILE
         );
+    }
+
+    // ==================== 胶囊宽度读写 ====================
+    private int readCurrentWidth() {
+        try {
+            File f = new File(WIDTH_FILE);
+            if (!f.exists()) {
+                return 0;
+            }
+            BufferedReader br = new BufferedReader(new FileReader(f));
+            String line = br.readLine();
+            br.close();
+            if (line == null) {
+                return 0;
+            }
+            int value = Integer.parseInt(line.trim());
+            return Math.max(0, Math.min(value, 300));
+        } catch (Throwable t) {
+            return 0;
+        }
+    }
+
+    private boolean writeWidthToFile(int px) {
+        return RootUtils.exec(
+                "echo " + px + " > " + WIDTH_FILE
+                        + " && chmod 666 " + WIDTH_FILE
+        );
+    }
+
+    private void updateWidthLabel(TextView tv, int px) {
+        tv.setText(px <= 0
+                ? lang("自动", "Auto", "Авто")
+                : px + " px");
     }
 }
