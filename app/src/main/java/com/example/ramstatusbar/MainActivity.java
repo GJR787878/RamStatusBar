@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -53,6 +54,10 @@ public class MainActivity extends Activity {
     private static final int COLOR_NAV_BG = 0xB31C1C1E;
     private static final int COLOR_NAV_BORDER = 0x40FFFFFF;
     private static final int COLOR_TAB_SELECTED_BG = 0x2EFFFFFF;
+
+    // 更新检测：GitHub 仓库与发布页
+    private static final String UPDATE_REPO = "GJR787878/RamStatusBar";
+    private static final String RELEASES_URL = "https://github.com/GJR787878/RamStatusBar/releases/latest";
 
     private String mLanguage = LANG_ZH;
     private TextView mDeepSleepText;
@@ -123,6 +128,9 @@ public class MainActivity extends Activity {
         setContentView(root);
         setTitle(lang("RAM 状态栏显示", "RAM Status Bar", "RAM Статус-бар"));
         switchTab(TAB_HOME);
+
+        // 启动时自动检测更新（后台，有新版本才提示）
+        checkUpdate(false);
     }
 
     // ==================== 主页 ====================
@@ -191,10 +199,70 @@ public class MainActivity extends Activity {
         mDeepSleepText.setPadding(0, Math.round(16 * density), 0, 0);
         content.addView(mDeepSleepText);
 
+        // 检查更新按钮（主页最下方）
+        Button btnCheckUpdate = new Button(this);
+        btnCheckUpdate.setTextSize(14);
+        btnCheckUpdate.setTextColor(COLOR_WHITE);
+        btnCheckUpdate.setAllCaps(false);
+        btnCheckUpdate.setText(lang("🔄 检查更新", "🔄 Check Update", "🔄 Проверить обновления"));
+        btnCheckUpdate.setBackground(createGlassButtonBg(density));
+        LinearLayout.LayoutParams checkParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        checkParams.topMargin = Math.round(32 * density);
+        btnCheckUpdate.setLayoutParams(checkParams);
+        btnCheckUpdate.setOnClickListener(v -> checkUpdate(true));
+        content.addView(btnCheckUpdate);
+
         scrollView.addView(content, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         return scrollView;
+    }
+
+    // ==================== 检查更新 ====================
+    private void checkUpdate(boolean manual) {
+        String versionName;
+        try {
+            versionName = getPackageManager()
+                    .getPackageInfo(getPackageName(), 0).versionName;
+        } catch (Exception e) {
+            versionName = "0";
+        }
+        UpdateChecker.check(UPDATE_REPO, versionName,
+                (latest, tag, hasUpdate, error) -> {
+                    if (hasUpdate) {
+                        new AlertDialog.Builder(this)
+                                .setTitle(lang("🔄 发现新版本 v" + latest,
+                                        "🔄 New version v" + latest + " available",
+                                        "🔄 Доступна новая версия v" + latest))
+                                .setMessage(lang("检测到新版本 v" + latest + "，是否前往下载？",
+                                        "New version v" + latest + " detected. Download now?",
+                                        "Обнаружена новая версия v" + latest + ". Скачать?"))
+                                .setPositiveButton(lang("下载", "Download", "Скачать"), (d, w) -> {
+                                    try {
+                                        startActivity(new Intent(
+                                                Intent.ACTION_VIEW,
+                                                Uri.parse(RELEASES_URL)));
+                                    } catch (Exception ignored) {
+                                    }
+                                })
+                                .setNegativeButton(lang("取消", "Cancel", "Отмена"), null)
+                                .show();
+                    } else if (manual) {
+                        if (error != null) {
+                            Toast.makeText(this,
+                                    lang("检查更新失败：", "Update check failed: ",
+                                            "Не удалось проверить обновления: ") + error,
+                                    Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(this,
+                                    lang("已是最新版本", "You are up to date",
+                                            "У вас последняя версия"),
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
     }
 
     // ==================== 配置页 ====================
