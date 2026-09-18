@@ -63,6 +63,7 @@ jobs:
             || { echo "SIGNATURE MISMATCH"; exit 1; }
 
       - name: Update latest_version.txt (jsDelivr CDN 检测源)
+        if: github.ref == 'refs/heads/main'
         run: |
           VER=$(grep -oP 'versionName\s+"\K[^"]+' app/build.gradle)
           echo "当前版本: $VER"

@@ -107,8 +107,16 @@ public class MainActivity extends Activity {
 
         float density = getResources().getDisplayMetrics().density;
         int screenWidthPx = getResources().getDisplayMetrics().widthPixels;
-        final int contentWidthPx = screenWidthPx
+        int screenHeightPx = getResources().getDisplayMetrics().heightPixels;
+        // 平板（sw600dp+）：导航栏改左侧悬浮胶囊，内容区让出导航宽度
+        final boolean tablet = getResources().getConfiguration().smallestScreenWidthDp >= 600;
+        final int sideNavAreaPx = tablet ? Math.round(140 * density) : 0;
+        int contentWidthPx = screenWidthPx - sideNavAreaPx
                 - Math.round(48 * density) - Math.round(48 * density);
+        // 平板内容宽度上限，避免长文本整行拉伸
+        if (contentWidthPx > Math.round(760 * density)) {
+            contentWidthPx = Math.round(760 * density);
+        }
 
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(0xFF000000);
@@ -117,25 +125,36 @@ public class MainActivity extends Activity {
         FrameLayout.LayoutParams containerParams = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT);
+        containerParams.leftMargin = sideNavAreaPx;
         root.addView(contentContainer, containerParams);
 
-        mHomePage = createHomePage(density, contentWidthPx);
-        mConfigPage = createConfigPage(density, contentWidthPx);
-        mSettingsPage = createSettingsPage(density, contentWidthPx);
+        mHomePage = createHomePage(density, contentWidthPx, tablet);
+        mConfigPage = createConfigPage(density, contentWidthPx, tablet);
+        mSettingsPage = createSettingsPage(density, contentWidthPx, tablet);
 
         contentContainer.addView(mHomePage);
         contentContainer.addView(mConfigPage);
         contentContainer.addView(mSettingsPage);
 
-        View bottomNav = createBottomNav(density);
-        FrameLayout.LayoutParams navParams = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-        navParams.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
-        navParams.leftMargin = Math.round(24 * density);
-        navParams.rightMargin = Math.round(24 * density);
-        navParams.bottomMargin = Math.round(24 * density);
-        root.addView(bottomNav, navParams);
+        View nav = tablet ? createSideNav(density, screenHeightPx) : createBottomNav(density);
+        FrameLayout.LayoutParams navParams;
+        if (tablet) {
+            // 左侧悬浮胶囊：垂直居中，高度约为屏幕一半，不铺满
+            navParams = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            navParams.gravity = Gravity.LEFT | Gravity.CENTER_VERTICAL;
+            navParams.leftMargin = Math.round(20 * density);
+        } else {
+            navParams = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            navParams.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+            navParams.leftMargin = Math.round(24 * density);
+            navParams.rightMargin = Math.round(24 * density);
+            navParams.bottomMargin = Math.round(24 * density);
+        }
+        root.addView(nav, navParams);
 
         setContentView(root);
         setTitle(lang("RAM 状态栏显示", "RAM Status Bar", "RAM Статус-бар"));
@@ -146,7 +165,7 @@ public class MainActivity extends Activity {
     }
 
     // ==================== 主页 ====================
-    private View createHomePage(float density, int contentWidthPx) {
+    private View createHomePage(float density, int contentWidthPx, boolean tablet) {
         ScrollView scrollView = new ScrollView(this);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -218,10 +237,20 @@ public class MainActivity extends Activity {
         btnCheckUpdate.setAllCaps(false);
         btnCheckUpdate.setText(lang("🔄 检查更新", "🔄 Check Update", "🔄 Проверить обновления"));
         btnCheckUpdate.setBackground(createGlassButtonBg(density));
-        LinearLayout.LayoutParams checkParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-        checkParams.topMargin = Math.round(32 * density);
+        LinearLayout.LayoutParams checkParams;
+        if (tablet) {
+            // 平板：按钮不整行拉伸，居中固定宽度
+            checkParams = new LinearLayout.LayoutParams(
+                    Math.round(360 * density),
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            checkParams.gravity = Gravity.CENTER_HORIZONTAL;
+            checkParams.topMargin = Math.round(32 * density);
+        } else {
+            checkParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            checkParams.topMargin = Math.round(32 * density);
+        }
         btnCheckUpdate.setLayoutParams(checkParams);
         btnCheckUpdate.setOnClickListener(v -> checkUpdate(true));
         content.addView(btnCheckUpdate);
@@ -278,7 +307,7 @@ public class MainActivity extends Activity {
     }
 
     // ==================== 配置页 ====================
-    private View createConfigPage(float density, int contentWidthPx) {
+    private View createConfigPage(float density, int contentWidthPx, boolean tablet) {
         ScrollView scrollView = new ScrollView(this);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -306,14 +335,15 @@ public class MainActivity extends Activity {
         int currentMode = readCurrentModeOrDefault();
 
         final RadioGroup radioGroup = new RadioGroup(this);
-        radioGroup.setOrientation(RadioGroup.VERTICAL);
+        // 平板：3 个模式按钮横排一行；手机：保持竖排
+        radioGroup.setOrientation(tablet ? RadioGroup.HORIZONTAL : RadioGroup.VERTICAL);
 
         final RadioButton rbTimeOnly = createModeRadioButton(1001,
-                lang("仅显示时间", "Time only", "Только время"), density);
+                lang("仅显示时间", "Time only", "Только время"), density, tablet);
         final RadioButton rbTimeRam = createModeRadioButton(1002,
-                lang("时间 + 内存 (如 21:11 2.5G/8G)", "Time + RAM (e.g. 21:11 2.5G/8G)", "Время + RAM (напр. 21:11 2.5G/8G)"), density);
+                lang("时间 + 内存 (如 21:11 2.5G/8G)", "Time + RAM (e.g. 21:11 2.5G/8G)", "Время + RAM (напр. 21:11 2.5G/8G)"), density, tablet);
         final RadioButton rbRamOnly = createModeRadioButton(1003,
-                lang("仅显示内存 (如 2.5G/8G)", "RAM only (e.g. 2.5G/8G)", "Только RAM (напр. 2.5G/8G)"), density);
+                lang("仅显示内存 (如 2.5G/8G)", "RAM only (e.g. 2.5G/8G)", "Только RAM (напр. 2.5G/8G)"), density, tablet);
 
         radioGroup.addView(rbTimeOnly);
         radioGroup.addView(rbTimeRam);
@@ -385,7 +415,7 @@ public class MainActivity extends Activity {
     }
 
     // ==================== 设置页 ====================
-    private View createSettingsPage(float density, int contentWidthPx) {
+    private View createSettingsPage(float density, int contentWidthPx, boolean tablet) {
         ScrollView scrollView = new ScrollView(this);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -404,7 +434,7 @@ public class MainActivity extends Activity {
         colorLabel.setTextColor(COLOR_WHITE);
         colorLabel.setPadding(0, Math.round(40 * density), 0, Math.round(12 * density));
         colorLabel.setText(lang("背景颜色", "Background color", "Цвет фона"));
-        content.addView(colorLabel);
+        if (!tablet) content.addView(colorLabel);
 
         Button colorButton = new Button(this);
         colorButton.setText(lang("选择背景颜色", "Pick background color", "Выбрать цвет фона"));
@@ -421,7 +451,7 @@ public class MainActivity extends Activity {
                 startActivity(intent);
             }
         });
-        content.addView(colorButton, new LinearLayout.LayoutParams(
+        if (!tablet) content.addView(colorButton, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
 
@@ -514,7 +544,7 @@ public class MainActivity extends Activity {
         timeLabel.setTextColor(COLOR_WHITE);
         timeLabel.setPadding(0, Math.round(48 * density), 0, Math.round(12 * density));
         timeLabel.setText(lang("时间设置", "Time Settings", "Настройки времени"));
-        content.addView(timeLabel);
+        if (!tablet) content.addView(timeLabel);
 
         Button timeButton = new Button(this);
         timeButton.setText(lang("时间设置", "Time Settings", "Настройки времени"));
@@ -531,7 +561,7 @@ public class MainActivity extends Activity {
                 startActivity(intent);
             }
         });
-        content.addView(timeButton, new LinearLayout.LayoutParams(
+        if (!tablet) content.addView(timeButton, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
 
@@ -543,11 +573,12 @@ public class MainActivity extends Activity {
         content.addView(langLabel);
 
         final RadioGroup langGroup = new RadioGroup(this);
-        langGroup.setOrientation(RadioGroup.VERTICAL);
+        // 平板：3 个语言按钮横排一行；手机：保持竖排
+        langGroup.setOrientation(tablet ? RadioGroup.HORIZONTAL : RadioGroup.VERTICAL);
 
-        final RadioButton rbZh = createModeRadioButton(2001, "中文", density);
-        final RadioButton rbEn = createModeRadioButton(2002, "English", density);
-        final RadioButton rbRu = createModeRadioButton(2003, "Русский", density);
+        final RadioButton rbZh = createModeRadioButton(2001, "中文", density, tablet);
+        final RadioButton rbEn = createModeRadioButton(2002, "English", density, tablet);
+        final RadioButton rbRu = createModeRadioButton(2003, "Русский", density, tablet);
 
         langGroup.addView(rbZh);
         langGroup.addView(rbEn);
@@ -606,7 +637,7 @@ public class MainActivity extends Activity {
         deviceInfoLabel.setTextColor(COLOR_WHITE);
         deviceInfoLabel.setPadding(0, Math.round(48 * density), 0, Math.round(12 * density));
         deviceInfoLabel.setText(lang("设备信息", "Device Info", "Информация об устройстве"));
-        content.addView(deviceInfoLabel);
+        if (!tablet) content.addView(deviceInfoLabel);
 
         Button deviceInfoButton = new Button(this);
         deviceInfoButton.setText(lang("显示当前设备信息", "Show Device Info", "Показать информацию об устройстве"));
@@ -617,9 +648,33 @@ public class MainActivity extends Activity {
                 Math.round(24 * density), Math.round(14 * density),
                 Math.round(24 * density), Math.round(14 * density));
         deviceInfoButton.setOnClickListener(v -> showDeviceInfoDialog());
-        content.addView(deviceInfoButton, new LinearLayout.LayoutParams(
+        if (!tablet) content.addView(deviceInfoButton, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        if (tablet) {
+            // 平板：三个操作按钮（背景颜色/时间设置/设备信息）横排一行，插入在滑块块之后
+            content.removeView(colorLabel);
+            content.removeView(colorButton);
+            content.removeView(timeLabel);
+            content.removeView(timeButton);
+            content.removeView(deviceInfoLabel);
+            content.removeView(deviceInfoButton);
+
+            LinearLayout actionRow = new LinearLayout(this);
+            actionRow.setOrientation(LinearLayout.HORIZONTAL);
+            LinearLayout.LayoutParams colParams = new LinearLayout.LayoutParams(
+                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            colParams.setMargins(Math.round(4 * density), 0, Math.round(4 * density), 0);
+            actionRow.addView(buildLabelButtonColumn(colorLabel, colorButton, density), colParams);
+            actionRow.addView(buildLabelButtonColumn(timeLabel, timeButton, density), colParams);
+            actionRow.addView(buildLabelButtonColumn(deviceInfoLabel, deviceInfoButton, density), colParams);
+
+            int insertIndex = content.indexOfChild(widthHint) + 1;
+            content.addView(actionRow, insertIndex, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
 
         scrollView.addView(content, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -627,7 +682,58 @@ public class MainActivity extends Activity {
         return scrollView;
     }
 
-    // ==================== 底部导航栏 ====================
+    // ==================== 左侧导航栏（平板专用，参考 Play 商店侧栏样式） ====================
+    private View createSideNav(float density, int screenHeightPx) {
+        FrameLayout navWrapper = new FrameLayout(this);
+
+        LinearLayout navBar = new LinearLayout(this);
+        navBar.setOrientation(LinearLayout.VERTICAL);
+        navBar.setGravity(Gravity.CENTER);
+        navBar.setPadding(
+                Math.round(8 * density), Math.round(8 * density),
+                Math.round(8 * density), Math.round(8 * density));
+
+        GlassButtonDrawable navBg = new GlassButtonDrawable(
+                Math.round(28 * density), Math.round(1 * density), false);
+        navBar.setBackground(navBg);
+
+        // 悬浮胶囊：垂直居中，高度约为屏幕一半，不铺满
+        int navWidth = Math.round(96 * density);
+        int navHeight = screenHeightPx / 2;
+        FrameLayout.LayoutParams navBarParams = new FrameLayout.LayoutParams(navWidth, navHeight);
+        navWrapper.addView(navBar, navBarParams);
+
+        mNavHome = createNavItem(R.drawable.ic_home,
+                lang("主页", "Home", "Главная"), density);
+        mNavConfig = createNavItem(R.drawable.ic_config,
+                lang("配置", "Config", "Конфиг"), density);
+        mNavSettings = createNavItem(R.drawable.ic_settings,
+                lang("设置", "Settings", "Настройки"), density);
+
+        mIconHome = (ImageView) ((LinearLayout) mNavHome).getChildAt(0);
+        mLabelHome = (TextView) ((LinearLayout) mNavHome).getChildAt(1);
+        mIconConfig = (ImageView) ((LinearLayout) mNavConfig).getChildAt(0);
+        mLabelConfig = (TextView) ((LinearLayout) mNavConfig).getChildAt(1);
+        mIconSettings = (ImageView) ((LinearLayout) mNavSettings).getChildAt(0);
+        mLabelSettings = (TextView) ((LinearLayout) mNavSettings).getChildAt(1);
+
+        mNavHome.setOnClickListener(v -> switchTab(TAB_HOME));
+        mNavConfig.setOnClickListener(v -> switchTab(TAB_CONFIG));
+        mNavSettings.setOnClickListener(v -> switchTab(TAB_SETTINGS));
+
+        // 三个导航项均分胶囊高度
+        LinearLayout.LayoutParams itemParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
+        itemParams.gravity = Gravity.CENTER;
+
+        navBar.addView(mNavHome, itemParams);
+        navBar.addView(mNavConfig, itemParams);
+        navBar.addView(mNavSettings, itemParams);
+
+        return navWrapper;
+    }
+
+    // ==================== 底部导航栏（手机） ====================
     private View createBottomNav(float density) {
         FrameLayout navWrapper = new FrameLayout(this);
 
@@ -711,23 +817,48 @@ public class MainActivity extends Activity {
     }
 
     private RadioButton createModeRadioButton(int id, String text, float density) {
+        return createModeRadioButton(id, text, density, false);
+    }
+
+    private RadioButton createModeRadioButton(int id, String text, float density, boolean horizontal) {
         RadioButton rb = new RadioButton(this);
         rb.setId(id);
         rb.setText(text);
         rb.setTextColor(COLOR_WHITE);
         rb.setTextSize(14);
-        rb.setGravity(Gravity.CENTER_VERTICAL);
+        rb.setGravity(horizontal ? Gravity.CENTER : Gravity.CENTER_VERTICAL);
         rb.setButtonDrawable(null);
         rb.setPadding(
                 Math.round(24 * density), Math.round(16 * density),
                 Math.round(24 * density), Math.round(16 * density));
         rb.setBackground(createGlassButtonBg(density));
-        RadioGroup.LayoutParams params = new RadioGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-        params.topMargin = Math.round(12 * density);
+        RadioGroup.LayoutParams params;
+        if (horizontal) {
+            // 平板横排：等宽按钮 + 左右留隙
+            params = new RadioGroup.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            params.setMargins(Math.round(6 * density), 0, Math.round(6 * density), 0);
+        } else {
+            params = new RadioGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            params.topMargin = Math.round(12 * density);
+        }
         rb.setLayoutParams(params);
         return rb;
+    }
+
+    // 平板：标签 + 按钮组成一列，用于横排组合
+    private LinearLayout buildLabelButtonColumn(TextView label, View button, float density) {
+        LinearLayout column = new LinearLayout(this);
+        column.setOrientation(LinearLayout.VERTICAL);
+        label.setPadding(0, Math.round(24 * density), 0, Math.round(12 * density));
+        column.addView(label, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        column.addView(button, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        return column;
     }
 
     private void updateModeButtonStyles(float density, RadioGroup group,
