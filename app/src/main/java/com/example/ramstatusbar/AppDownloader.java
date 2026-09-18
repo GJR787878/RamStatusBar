@@ -3,6 +3,9 @@ package com.example.ramstatusbar;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
@@ -63,7 +66,8 @@ public class AppDownloader {
         LinearLayout root = new LinearLayout(context);
         root.setOrientation(LinearLayout.VERTICAL);
         int pad = Math.round(20 * density);
-        root.setPadding(pad, Math.round(4 * density), pad, 0);
+        root.setPadding(pad, Math.round(8 * density), pad, Math.round(20 * density));
+        root.setBackground(new ColorDrawable(Color.TRANSPARENT));
 
         final ProgressBar progress = new ProgressBar(
                 context, null, android.R.attr.progressBarStyleHorizontal);
@@ -123,6 +127,12 @@ public class AppDownloader {
                 .setCancelable(false)
                 .create();
         dialog.show();
+
+        // 弹窗圆角背景（与玻璃按钮圆角一致）
+        GradientDrawable dialogBg = new GradientDrawable();
+        dialogBg.setColor(0xFF1C1C1E);
+        dialogBg.setCornerRadius(Math.round(28 * density));
+        dialog.getWindow().setBackgroundDrawable(dialogBg);
 
         cancelBtn.setOnClickListener(v -> {
             cancelled.set(true);
