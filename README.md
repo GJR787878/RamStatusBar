@@ -1,7 +1,7 @@
 # RamStatusBar
 
-> An LSPosed module that displays real-time RAM usage in the status bar clock area
-> 在状态栏时钟处显示实时内存占用的 LSPosed 模块
+> 在状态栏时钟位置实时显示剩余内存，点击循环查看 CPU/GPU 占用与温度，三种显示模式 + 自定义胶囊颜色
+> Shows live RAM usage at the status bar clock; tap to cycle CPU/GPU usage & temperature, 3 display modes, customizable capsule color
 
 [![Android](https://img.shields.io/badge/Android-8.0%2B-green.svg)](https://www.android.com/)
 [![LSPosed](https://img.shields.io/badge/LSPosed-Required-blue.svg)](https://github.com/LSPosed/LSPosed)
