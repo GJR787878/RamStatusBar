@@ -273,19 +273,7 @@ public class MainActivity extends Activity {
         UpdateChecker.check(UPDATE_REPO, versionName,
                 (latest, tag, hasUpdate, error) -> {
                     if (hasUpdate) {
-                        new AlertDialog.Builder(this)
-                                .setTitle(lang("🔄 发现新版本 v" + latest,
-                                        "🔄 New version v" + latest + " available",
-                                        "🔄 Доступна новая версия v" + latest))
-                                .setMessage(lang("检测到新版本 v" + latest + "，是否下载？",
-                                        "New version v" + latest + " detected. Download?",
-                                        "Обнаружена новая версия v" + latest + ". Скачать?"))
-                                .setPositiveButton(lang("下载", "Download", "Скачать"), (d, w) -> {
-                                    d.dismiss();
-                                    startInAppDownload(latest, tag);
-                                })
-                                .setNegativeButton(lang("取消", "Cancel", "Отмена"), null)
-                                .show();
+                        showUpdateAvailableDialog(latest, tag);
                     } else if (manual) {
                         if (error != null) {
                             Toast.makeText(this,
@@ -300,6 +288,86 @@ public class MainActivity extends Activity {
                         }
                     }
                 });
+    }
+
+    /**
+     * "发现新版本"弹窗：圆角背景 + 玻璃按钮，与下载进度弹窗风格一致。
+     */
+    private void showUpdateAvailableDialog(String latest, String tag) {
+        final float density = getResources().getDisplayMetrics().density;
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        int pad = Math.round(20 * density);
+        root.setPadding(pad, Math.round(16 * density), pad, Math.round(20 * density));
+        root.setBackground(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+
+        TextView title = new TextView(this);
+        title.setText(lang("🔄 发现新版本 v" + latest,
+                "🔄 New version v" + latest + " available",
+                "🔄 Доступна новая версия v" + latest));
+        title.setTextSize(18);
+        title.setTextColor(0xFFFFFFFF);
+        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
+        root.addView(title);
+
+        TextView msg = new TextView(this);
+        msg.setText(lang("检测到新版本 v" + latest + "，是否下载？",
+                "New version v" + latest + " detected. Download?",
+                "Обнаружена новая версия v" + latest + ". Скачать?"));
+        msg.setTextSize(14);
+        msg.setTextColor(0xFFCCCCCC);
+        LinearLayout.LayoutParams msgLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        msgLp.topMargin = Math.round(10 * density);
+        root.addView(msg, msgLp);
+
+        LinearLayout btnRow = new LinearLayout(this);
+        btnRow.setOrientation(LinearLayout.HORIZONTAL);
+        btnRow.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        rowLp.topMargin = Math.round(18 * density);
+        btnRow.setLayoutParams(rowLp);
+
+        Button cancelBtn = new Button(this);
+        cancelBtn.setText(lang("取消", "Cancel", "Отмена"));
+        cancelBtn.setTextSize(14);
+        cancelBtn.setTextColor(COLOR_WHITE);
+        cancelBtn.setBackground(new GlassButtonDrawable(
+                Math.round(28 * density), Math.round(1 * density), false));
+
+        Button downloadBtn = new Button(this);
+        downloadBtn.setText(lang("下载", "Download", "Скачать"));
+        downloadBtn.setTextSize(14);
+        downloadBtn.setTextColor(COLOR_WHITE);
+        downloadBtn.setBackground(new GlassButtonDrawable(
+                Math.round(28 * density), Math.round(1 * density), false));
+
+        int btnMargin = Math.round(4 * density);
+        LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        btnLp.leftMargin = btnMargin;
+        btnLp.rightMargin = btnMargin;
+        btnRow.addView(cancelBtn, btnLp);
+        btnRow.addView(downloadBtn, btnLp);
+        root.addView(btnRow, rowLp);
+
+        final AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(root)
+                .setCancelable(true)
+                .create();
+        dialog.show();
+
+        android.graphics.drawable.GradientDrawable dialogBg = new android.graphics.drawable.GradientDrawable();
+        dialogBg.setColor(0xFF1C1C1E);
+        dialogBg.setCornerRadius(Math.round(28 * density));
+        dialog.getWindow().setBackgroundDrawable(dialogBg);
+
+        cancelBtn.setOnClickListener(v -> dialog.dismiss());
+        downloadBtn.setOnClickListener(v -> {
+            dialog.dismiss();
+            startInAppDownload(latest, tag);
+        });
     }
 
     /**
