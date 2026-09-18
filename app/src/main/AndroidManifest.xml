@@ -37,5 +37,15 @@
         <meta-data
             android:name="xposedscope"
             android:resource="@array/xposed_scope" />
+        <!-- 内置下载 APK 安装：FileProvider 提供 content:// 访问 -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="io.github.gjr787878.ramstatusbar.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>

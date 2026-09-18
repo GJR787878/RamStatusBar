@@ -14,8 +14,8 @@ android {
         applicationId "io.github.gjr787878.ramstatusbar"
         minSdk 26
         targetSdk 34
-        versionCode 24
-        versionName "1.4.11"
+        versionCode 25
+        versionName "1.4.12"
     }
 
     signingConfigs {
@@ -48,4 +48,6 @@ dependencies {
     // Xposed API – only needed at compile time, provided by LSPosed/Vector at runtime
     compileOnly 'de.robv.android.xposed:api:82'
     compileOnly 'de.robv.android.xposed:api:82:sources'
+    // 内置下载安装：FileProvider（androidx.core）
+    implementation 'androidx.core:core:1.12.0'
 }

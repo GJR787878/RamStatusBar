@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.GradientDrawable;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -70,6 +69,7 @@ public class MainActivity extends Activity {
     // 更新检测：GitHub 仓库与发布页
     private static final String UPDATE_REPO = "GJR787878/RamStatusBar";
     private static final String RELEASES_URL = "https://github.com/GJR787878/RamStatusBar/releases/latest";
+    private static final String REPO_HOME_URL = "https://github.com/GJR787878/RamStatusBar";
 
     private String mLanguage = LANG_ZH;
     private TextView mDeepSleepText;
@@ -277,16 +277,12 @@ public class MainActivity extends Activity {
                                 .setTitle(lang("🔄 发现新版本 v" + latest,
                                         "🔄 New version v" + latest + " available",
                                         "🔄 Доступна новая версия v" + latest))
-                                .setMessage(lang("检测到新版本 v" + latest + "，是否前往下载？",
-                                        "New version v" + latest + " detected. Download now?",
+                                .setMessage(lang("检测到新版本 v" + latest + "，是否下载？",
+                                        "New version v" + latest + " detected. Download?",
                                         "Обнаружена новая версия v" + latest + ". Скачать?"))
                                 .setPositiveButton(lang("下载", "Download", "Скачать"), (d, w) -> {
-                                    try {
-                                        startActivity(new Intent(
-                                                Intent.ACTION_VIEW,
-                                                Uri.parse(RELEASES_URL)));
-                                    } catch (Exception ignored) {
-                                    }
+                                    d.dismiss();
+                                    startInAppDownload(latest, tag);
                                 })
                                 .setNegativeButton(lang("取消", "Cancel", "Отмена"), null)
                                 .show();
@@ -304,6 +300,35 @@ public class MainActivity extends Activity {
                         }
                     }
                 });
+    }
+
+    /**
+     * 内置下载：构建直连 + 镜像候选地址，交给 AppDownloader 下载并弹进度条。
+     */
+    private void startInAppDownload(String version, String tag) {
+        String asset = "release-app-debug.apk";
+        String[] urls = buildDownloadUrls(tag, asset);
+        AppDownloader.start(this, urls, REPO_HOME_URL,
+                "RamStatusBar-v" + version + ".apk", version, mLanguage);
+    }
+
+    private String[] buildDownloadUrls(String tag, String asset) {
+        String direct = "https://github.com/" + UPDATE_REPO
+                + "/releases/download/" + tag + "/" + asset;
+        String[] mirrors = {
+                "https://ghfast.top/",
+                "https://gh-proxy.com/",
+                "https://ghproxy.net/",
+                "https://gh.llkk.cc/",
+                "https://mirror.ghproxy.com/",
+                "https://github.moeyy.xyz/"
+        };
+        String[] urls = new String[1 + mirrors.length];
+        urls[0] = direct;
+        for (int i = 0; i < mirrors.length; i++) {
+            urls[i + 1] = mirrors[i] + direct;
+        }
+        return urls;
     }
 
     // ==================== 配置页 ====================
