@@ -110,7 +110,7 @@ public class MainActivity extends Activity {
         int screenHeightPx = getResources().getDisplayMetrics().heightPixels;
         // 平板（sw600dp+）：导航栏改左侧悬浮胶囊，内容区让出导航宽度
         final boolean tablet = getResources().getConfiguration().smallestScreenWidthDp >= 600;
-        final int sideNavAreaPx = tablet ? Math.round(140 * density) : 0;
+        final int sideNavAreaPx = tablet ? Math.round(110 * density) : 0;
         int contentWidthPx = screenWidthPx - sideNavAreaPx
                 - Math.round(48 * density) - Math.round(48 * density);
         // 平板内容宽度上限，避免长文本整行拉伸
@@ -690,15 +690,15 @@ public class MainActivity extends Activity {
         navBar.setOrientation(LinearLayout.VERTICAL);
         navBar.setGravity(Gravity.CENTER);
         navBar.setPadding(
-                Math.round(8 * density), Math.round(8 * density),
-                Math.round(8 * density), Math.round(8 * density));
+                Math.round(6 * density), Math.round(8 * density),
+                Math.round(6 * density), Math.round(8 * density));
 
         GlassButtonDrawable navBg = new GlassButtonDrawable(
                 Math.round(28 * density), Math.round(1 * density), false);
         navBar.setBackground(navBg);
 
         // 悬浮胶囊：垂直居中，高度约为屏幕一半，不铺满
-        int navWidth = Math.round(96 * density);
+        int navWidth = Math.round(72 * density);
         int navHeight = screenHeightPx / 2;
         FrameLayout.LayoutParams navBarParams = new FrameLayout.LayoutParams(navWidth, navHeight);
         navWrapper.addView(navBar, navBarParams);
