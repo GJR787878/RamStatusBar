@@ -245,6 +245,14 @@ public class TimeSettingsActivity extends Activity {
         mCustomTime = timePrefs.getLong(KEY_CUSTOM_TIME, 0);
 
         float density = getResources().getDisplayMetrics().density;
+        // 平板（sw600dp+）：内容宽度上限，避免整行拉伸（居中留白）
+        boolean tablet = getResources().getConfiguration().smallestScreenWidthDp >= 600;
+        int screenWidthPx = getResources().getDisplayMetrics().widthPixels;
+        int sidePad = Math.round(24 * density);
+        if (tablet) {
+            int cap = Math.round(760 * density);
+            sidePad = Math.max(sidePad, (screenWidthPx - cap) / 2);
+        }
 
         // 设置窗口背景为不透明黑色，防止透看到上一个页面
         getWindow().setBackgroundDrawableResource(android.R.color.black);
@@ -254,8 +262,8 @@ public class TimeSettingsActivity extends Activity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(
-                Math.round(24 * density), Math.round(48 * density),
-                Math.round(24 * density), Math.round(32 * density));
+                sidePad, Math.round(48 * density),
+                sidePad, Math.round(32 * density));
         root.setBackgroundColor(0xFF000000);
 
         // 顶部栏：返回箭头 + 标题
@@ -498,6 +506,30 @@ public class TimeSettingsActivity extends Activity {
         backParams.topMargin = Math.round(48 * density);
         root.addView(backButton, backParams);
 
+        if (tablet) {
+            // 平板：自动同步/选择时区/自定义时间 三个设置按钮横排一行，插在说明文字之后
+            root.removeView(autoSyncLabel);
+            root.removeView(autoSyncButton);
+            root.removeView(timeZoneLabel);
+            root.removeView(timeZoneButton);
+            root.removeView(customTimeLabel);
+            root.removeView(customTimeButton);
+
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            LinearLayout.LayoutParams colParams = new LinearLayout.LayoutParams(
+                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            colParams.setMargins(Math.round(4 * density), 0, Math.round(4 * density), 0);
+            row.addView(buildLabelButtonColumn(autoSyncLabel, autoSyncButton, density), colParams);
+            row.addView(buildLabelButtonColumn(timeZoneLabel, timeZoneButton, density), colParams);
+            row.addView(buildLabelButtonColumn(customTimeLabel, customTimeButton, density), colParams);
+
+            int insertIndex = root.indexOfChild(noteLabel);
+            root.addView(row, insertIndex, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
+
         scrollView.addView(root, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -506,6 +538,20 @@ public class TimeSettingsActivity extends Activity {
 
     private GlassButtonDrawable createGlassButtonBg(float density) {
         return new GlassButtonDrawable(Math.round(28 * density), Math.round(1 * density), false);
+    }
+
+    // 平板：标签 + 按钮组成一列，用于横排组合
+    private LinearLayout buildLabelButtonColumn(TextView label, View button, float density) {
+        LinearLayout column = new LinearLayout(this);
+        column.setOrientation(LinearLayout.VERTICAL);
+        label.setPadding(0, Math.round(24 * density), 0, Math.round(12 * density));
+        column.addView(label, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        column.addView(button, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        return column;
     }
 
     private void updateButtonStyle(LinearLayout button, boolean selected, float density) {

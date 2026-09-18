@@ -40,6 +40,16 @@
 **需要 Root 权限，配合 LSPosed 与 Magisk 使用；首次安装后需重启手机生效。**
 *Requires root access, intended for use with LSPosed and Magisk. A reboot is required after the first install.*
 
+## 🆕 更新日志 / Changelog
+
+### v1.4.11（2026-09-18）
+
+- **平板适配**：导航栏从底部改为屏幕左侧悬浮胶囊（垂直居中、约半屏高、不铺满），手机端保持原底部导航不变
+- **平板适配**：主页/配置/设置/时间/颜色各页按钮改为横排网格布局，内容宽度自适应不再整行拉伸
+- **界面统一**：日期、时间、时区、颜色选择等所有系统弹窗统一为暗色主题
+
+---
+
 ## 🔧 安装步骤 / Installation
 
 1. 安装 APK 后，在 LSPosed 中启用模块并勾选 `com.android.systemui` 作用域

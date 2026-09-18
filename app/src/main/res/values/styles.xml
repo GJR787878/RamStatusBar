@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 全局暗色主题：页面与所有弹窗（日期/时间/列表/颜色选择）统一暗色，避免系统默认浅色弹窗 -->
+    <style name="AppTheme" parent="android:Theme.Material">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:colorAccent">#0A84FF</item>
+        <item name="android:colorPrimary">#1C1C1E</item>
+        <item name="android:colorPrimaryDark">#000000</item>
+        <item name="android:textColorPrimary">#FFFFFFFF</item>
+        <item name="android:alertDialogTheme">@style/AppDialogTheme</item>
+        <item name="android:datePickerDialogTheme">@style/AppDialogTheme</item>
+        <item name="android:timePickerDialogTheme">@style/AppDialogTheme</item>
+    </style>
+
+    <!-- 暗色弹窗主题：AlertDialog / DatePickerDialog / TimePickerDialog 通用 -->
+    <style name="AppDialogTheme" parent="android:Theme.Material.Dialog.Alert">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:colorAccent">#0A84FF</item>
+        <item name="android:textColorPrimary">#FFFFFFFF</item>
+        <item name="android:textColorSecondary">#CCCCCCCC</item>
+    </style>
+</resources>

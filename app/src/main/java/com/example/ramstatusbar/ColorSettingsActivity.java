@@ -63,6 +63,8 @@ public class ColorSettingsActivity extends Activity {
 
         mSelectedColor = readColorFromFile();
         float density = getResources().getDisplayMetrics().density;
+        // 平板（sw600dp+）：三个按钮横排一行
+        final boolean tablet = getResources().getConfiguration().smallestScreenWidthDp >= 600;
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -167,6 +169,24 @@ public class ColorSettingsActivity extends Activity {
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         backParams.topMargin = Math.round(12 * density);
         root.addView(backButton, backParams);
+
+        if (tablet) {
+            // 平板：选择颜色 / 透明 / 返回 三个按钮横排一行，不整行拉伸
+            root.removeView(pickButton);
+            root.removeView(transparentButton);
+            root.removeView(backButton);
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            LinearLayout.LayoutParams colParams = new LinearLayout.LayoutParams(
+                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            colParams.setMargins(Math.round(4 * density), 0, Math.round(4 * density), 0);
+            row.addView(pickButton, colParams);
+            row.addView(transparentButton, colParams);
+            row.addView(backButton, colParams);
+            root.addView(row, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
 
         setContentView(root);
     }
