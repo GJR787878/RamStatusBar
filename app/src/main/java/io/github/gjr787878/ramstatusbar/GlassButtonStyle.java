@@ -1,4 +1,4 @@
-package com.example.ramstatusbar;
+package io.github.gjr787878.ramstatusbar;
 
 import android.graphics.drawable.GradientDrawable;
 

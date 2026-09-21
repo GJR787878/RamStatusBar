@@ -45,7 +45,7 @@ jobs:
       - name: Grant execute permission for gradlew
         run: |
           if [ ! -f gradlew ]; then
-            gradle wrapper --gradle-version 8.4
+            gradle wrapper --gradle-version 8.9
           fi
           chmod +x gradlew
 
