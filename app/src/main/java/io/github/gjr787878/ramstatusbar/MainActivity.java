@@ -787,8 +787,14 @@ public class MainActivity extends Activity {
                 Math.round(6 * density), Math.round(8 * density),
                 Math.round(6 * density), Math.round(8 * density));
 
-        GlassButtonDrawable navBg = new GlassButtonDrawable(
-                Math.round(28 * density), Math.round(1 * density), false);
+        // 磨砂玻璃背景（§3.6.1：深色渐变+淡白描边）
+        android.graphics.drawable.GradientDrawable navBg = new android.graphics.drawable.GradientDrawable();
+        navBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+        navBg.setCornerRadius(Math.round(28 * density));
+        int[] colors = {0xB32C2C2E, 0x993C3C3E}; // 70% 不透明深灰 → 60% 稍浅
+        navBg.setColors(colors);
+        navBg.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM);
+        navBg.setStroke(Math.round(1 * density), 0x55FFFFFF);
         navBar.setBackground(navBg);
 
         // 悬浮胶囊：垂直居中，高度约为屏幕一半，不铺满
@@ -838,8 +844,14 @@ public class MainActivity extends Activity {
                 Math.round(8 * density), Math.round(8 * density),
                 Math.round(8 * density), Math.round(8 * density));
 
-        GlassButtonDrawable navBg = new GlassButtonDrawable(
-                Math.round(28 * density), Math.round(1 * density), false);
+        // 磨砂玻璃背景（§3.6.1：深色渐变+淡白描边）
+        android.graphics.drawable.GradientDrawable navBg = new android.graphics.drawable.GradientDrawable();
+        navBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+        navBg.setCornerRadius(Math.round(28 * density));
+        int[] colors = {0xB32C2C2E, 0x993C3C3E}; // 70% 不透明深灰 → 60% 稍浅
+        navBg.setColors(colors);
+        navBg.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM);
+        navBg.setStroke(Math.round(1 * density), 0x55FFFFFF);
         navBar.setBackground(navBg);
 
         FrameLayout.LayoutParams navBarParams = new FrameLayout.LayoutParams(
