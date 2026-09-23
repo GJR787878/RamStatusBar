@@ -51,6 +51,13 @@ public class MainHook
             "/data/local/tmp/ramstatusbar_time";
 
     /*
+     * 双时区配置：由 TimeZoneDualActivity 写入（tz1=/tz2=），
+     * SystemUI 每秒轮询读取，选择后无需重启即可生效。
+     */
+    private static final String TIMEZONE_CONFIG_FILE =
+            "/data/local/tmp/ramstatusbar_timezones";
+
+    /*
      * 手动胶囊宽度（像素）。0 或文件不存在 = 自动。
      * 由 MainActivity 的滑块写入，SystemUI 每秒轮询读取，
      * 因此调节后无需重启即可实时生效。
@@ -61,6 +68,7 @@ public class MainHook
     private static final int MODE_TIME_ONLY = 0;
     private static final int MODE_TIME_RAM = 1;
     private static final int MODE_RAM_ONLY = 2;
+    private static final int MODE_TIMEZONE = 3;
 
     private static final int TAP_NORMAL = 0;
     private static final int TAP_CPU = 1;
@@ -124,6 +132,10 @@ public class MainHook
     private long mCustomTime = 0;
     // 同步瞬间的系统时钟（UTC毫秒），优先用它消除硬件时钟漂移
     private long mSyncSystemTime = 0;
+    // 双时区配置缓存（默认 北京/伦敦）
+    private long mTzConfigLastRead = 0;
+    private String mTz1Id = "Asia/Shanghai";
+    private String mTz2Id = "Europe/London";
 
     private Integer mLastCpuPercent = null;
     private Integer mLastGpuPercent = null;
@@ -503,6 +515,15 @@ public class MainHook
 
                         rawContent =
                                 normalContent;
+
+                        break;
+
+                    case MODE_TIMEZONE:
+
+                        rawContent =
+                                formatDualTimeZone(
+                                        displayTimeMs
+                                );
 
                         break;
                 }
@@ -1059,6 +1080,21 @@ public class MainHook
             }
         }
 
+        // 5) 双时区 "HH:mm｜HH:mm"：两个 HH:mm 各自取最宽 + 竖线
+        //    （格式固定，组合宽度 = 最宽时间1 + 竖线 + 最宽时间2，宽度单调可拆分）
+        String widestTz1 = widestTime;
+        float tzCombined =
+                paint.measureText(
+                        widestTime
+                                + "｜"
+                                + widestTz1
+                );
+
+        if (tzCombined > max) {
+
+            max = tzCombined;
+        }
+
         return max;
     }
 
@@ -1108,6 +1144,51 @@ public class MainHook
                 + " syncTimeBase=" + mSyncTimeBase 
                 + " syncSystemTime=" + mSyncSystemTime
                 + " customTime=" + mCustomTime);
+    }
+
+    // 读取双时区配置（带缓存，每秒最多读一次）
+    private void ensureTimeZoneConfig() {
+        long now = System.currentTimeMillis();
+        if (now - mTzConfigLastRead < 1000) {
+            return;
+        }
+        mTzConfigLastRead = now;
+        try {
+            java.io.File file = new java.io.File(TIMEZONE_CONFIG_FILE);
+            if (!file.exists()) {
+                return;
+            }
+            BufferedReader br = new BufferedReader(new FileReader(file));
+            String line;
+            while ((line = br.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty() || !line.contains("=")) {
+                    continue;
+                }
+                int eqIdx = line.indexOf("=");
+                String key = line.substring(0, eqIdx).trim();
+                String value = line.substring(eqIdx + 1).trim();
+                if ("tz1".equals(key) && !value.isEmpty()) {
+                    mTz1Id = value;
+                } else if ("tz2".equals(key) && !value.isEmpty()) {
+                    mTz2Id = value;
+                }
+            }
+            br.close();
+        } catch (Throwable t) {
+            XposedBridge.log(TAG + ": ensureTimeZoneConfig读取失败: " + t.getMessage());
+        }
+    }
+
+    // 双时区模式：格式化为 "HH:mm｜HH:mm"（时区Ⅰ｜时区Ⅱ）
+    private String formatDualTimeZone(long displayTimeMs) {
+        ensureTimeZoneConfig();
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
+        sdf.setTimeZone(java.util.TimeZone.getTimeZone(mTz1Id));
+        String t1 = sdf.format(new Date(displayTimeMs));
+        sdf.setTimeZone(java.util.TimeZone.getTimeZone(mTz2Id));
+        String t2 = sdf.format(new Date(displayTimeMs));
+        return t1 + "｜" + t2;
     }
 
     // 根据时间配置计算当前显示时间（UTC毫秒）

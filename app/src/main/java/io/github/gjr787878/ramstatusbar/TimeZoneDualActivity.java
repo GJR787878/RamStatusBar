@@ -33,6 +33,9 @@ public class TimeZoneDualActivity extends Activity {
     private static final String KEY_LANGUAGE = "language";
     private static final String KEY_TZ1_ID = "tz1_id";
     private static final String KEY_TZ2_ID = "tz2_id";
+    // SystemUI 进程读取的双时区配置文件（MainHook 轮询）
+    private static final String TIMEZONE_CONFIG_FILE =
+            "/data/local/tmp/ramstatusbar_timezones";
     private static final String LANG_ZH = "zh";
     private static final String LANG_EN = "en";
     private static final String LANG_RU = "ru";
@@ -347,6 +350,7 @@ public class TimeZoneDualActivity extends Activity {
                             mTz2Id = zoneId;
                         }
                         updateStatus();
+                        saveTimeZoneConfig();
                         Toast.makeText(TimeZoneDualActivity.this,
                                 lang("时区已更新", "Time zone updated", "Пояс обновлён"),
                                 Toast.LENGTH_SHORT).show();
@@ -355,6 +359,30 @@ public class TimeZoneDualActivity extends Activity {
                 });
         builder.setNegativeButton(lang("取消", "Cancel", "Отмена"), null);
         builder.show();
+    }
+
+    /** 把双时区写入配置文件（root + chmod 666，SystemUI 进程可读，MainHook 每秒轮询） */
+    private void saveTimeZoneConfig() {
+        try {
+            String content = "tz1=" + mTz1Id + "\ntz2=" + mTz2Id + "\n";
+            boolean ok = RootUtils.exec(
+                    "printf '" + content.replace("'", "'\''")
+                            + "' > " + TIMEZONE_CONFIG_FILE
+                            + " && chmod 666 " + TIMEZONE_CONFIG_FILE
+            );
+            if (!ok) {
+                // root 写入失败，尝试直接写入
+                try {
+                    java.io.FileWriter writer = new java.io.FileWriter(TIMEZONE_CONFIG_FILE);
+                    writer.write(content);
+                    writer.close();
+                } catch (Throwable t2) {
+                    // 忽略
+                }
+            }
+        } catch (Throwable t) {
+            // 写入失败时静默处理，SharedPreferences 仍会保存设置
+        }
     }
 
     private void updateStatus() {

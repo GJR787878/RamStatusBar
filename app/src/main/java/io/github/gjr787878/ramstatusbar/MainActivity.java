@@ -52,6 +52,7 @@ public class MainActivity extends Activity {
     private static final int MODE_TIME_ONLY = 0;
     private static final int MODE_TIME_RAM = 1;
     private static final int MODE_RAM_ONLY = 2;
+    private static final int MODE_TIMEZONE = 3;
 
     private static final String UI_PREFS_NAME = "ui_prefs";
     private static final String KEY_LANGUAGE = "language";
@@ -445,29 +446,36 @@ public class MainActivity extends Activity {
                 lang("时间 + 内存 (如 21:11 2.5G/8G)", "Time + RAM (e.g. 21:11 2.5G/8G)", "Время + RAM (напр. 21:11 2.5G/8G)"), density, tablet);
         final RadioButton rbRamOnly = createModeRadioButton(1003,
                 lang("仅显示内存 (如 2.5G/8G)", "RAM only (e.g. 2.5G/8G)", "Только RAM (напр. 2.5G/8G)"), density, tablet);
+        final RadioButton rbTz = createModeRadioButton(1004,
+                lang("双时区 (如 09:23｜12:23)", "Dual time zones (e.g. 09:23|12:23)", "Два пояса (напр. 09:23|12:23)"), density, tablet);
 
         radioGroup.addView(rbTimeOnly);
         radioGroup.addView(rbTimeRam);
         radioGroup.addView(rbRamOnly);
+        radioGroup.addView(rbTz);
 
         if (currentMode == MODE_TIME_ONLY) {
             radioGroup.check(rbTimeOnly.getId());
         } else if (currentMode == MODE_RAM_ONLY) {
             radioGroup.check(rbRamOnly.getId());
+        } else if (currentMode == MODE_TIMEZONE) {
+            radioGroup.check(rbTz.getId());
         } else {
             radioGroup.check(rbTimeRam.getId());
         }
-        updateModeButtonStyles(density, radioGroup, rbTimeOnly, rbTimeRam, rbRamOnly);
+        updateModeButtonStyles(density, radioGroup, rbTimeOnly, rbTimeRam, rbRamOnly, rbTz);
 
         radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup group, int checkedId) {
-                updateModeButtonStyles(density, radioGroup, rbTimeOnly, rbTimeRam, rbRamOnly);
+                updateModeButtonStyles(density, radioGroup, rbTimeOnly, rbTimeRam, rbRamOnly, rbTz);
                 int mode;
                 if (checkedId == rbTimeOnly.getId()) {
                     mode = MODE_TIME_ONLY;
                 } else if (checkedId == rbRamOnly.getId()) {
                     mode = MODE_RAM_ONLY;
+                } else if (checkedId == rbTz.getId()) {
+                    mode = MODE_TIMEZONE;
                 } else {
                     mode = MODE_TIME_RAM;
                 }
