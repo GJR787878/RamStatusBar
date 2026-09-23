@@ -33,7 +33,10 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileReader;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Locale;
+import java.util.TimeZone;
 
 public class MainActivity extends Activity {
 
@@ -52,6 +55,8 @@ public class MainActivity extends Activity {
 
     private static final String UI_PREFS_NAME = "ui_prefs";
     private static final String KEY_LANGUAGE = "language";
+    private static final String KEY_TZ1_ID = "tz1_id";
+    private static final String KEY_TZ2_ID = "tz2_id";
     private static final String LANG_ZH = "zh";
     private static final String LANG_EN = "en";
     private static final String LANG_RU = "ru";
@@ -73,6 +78,8 @@ public class MainActivity extends Activity {
 
     private String mLanguage = LANG_ZH;
     private TextView mDeepSleepText;
+    private TextView mTzTimeText;
+    private Runnable mTzUpdater;
     private final Handler mUiHandler = new Handler(Looper.getMainLooper());
     private Runnable mDeepSleepUpdater;
 
@@ -476,6 +483,57 @@ public class MainActivity extends Activity {
         });
 
         content.addView(radioGroup);
+
+        // ===== 时区Ⅰ｜时区Ⅱ（二级界面，右侧实时显示两个时区时间）=====
+        TextView tzLabel = new TextView(this);
+        tzLabel.setTextSize(15);
+        tzLabel.setTextColor(COLOR_WHITE);
+        tzLabel.setPadding(0, Math.round(48 * density), 0, Math.round(12 * density));
+        tzLabel.setText(lang("时区Ⅰ｜时区Ⅱ", "Time Zone I | II", "Часовой пояс I | II"));
+        content.addView(tzLabel);
+
+        LinearLayout tzButton = new LinearLayout(this);
+        tzButton.setBackground(createGlassButtonBg(density));
+        tzButton.setPadding(
+                Math.round(24 * density), Math.round(14 * density),
+                Math.round(24 * density), Math.round(14 * density));
+        tzButton.setGravity(Gravity.CENTER_VERTICAL);
+
+        LinearLayout tzLayout = new LinearLayout(this);
+        tzLayout.setOrientation(LinearLayout.HORIZONTAL);
+        tzLayout.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView tzTitle = new TextView(this);
+        tzTitle.setTextSize(14);
+        tzTitle.setTextColor(COLOR_WHITE);
+        tzTitle.setText(lang("时区Ⅰ｜时区Ⅱ", "Time Zone I | II", "Пояс I | II"));
+        LinearLayout.LayoutParams tzTitleParams = new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        tzLayout.addView(tzTitle, tzTitleParams);
+
+        mTzTimeText = new TextView(this);
+        mTzTimeText.setTextSize(13);
+        mTzTimeText.setTextColor(COLOR_ACCENT);
+        mTzTimeText.setGravity(Gravity.CENTER);
+        updateTzTimeDisplay();
+        tzLayout.addView(mTzTimeText, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        tzButton.addView(tzLayout, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        tzButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, TimeZoneDualActivity.class);
+                startActivity(intent);
+            }
+        });
+        content.addView(tzButton, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
 
         TextView setupTitle = new TextView(this);
         setupTitle.setTextSize(15);
@@ -1032,12 +1090,52 @@ public class MainActivity extends Activity {
         if (mCurrentTab == TAB_HOME) {
             startDeepSleepUpdates();
         }
+        if (mTzTimeText != null) {
+            updateTzTimeDisplay();
+            startTzUpdates();
+        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         stopDeepSleepUpdates();
+        stopTzUpdates();
+    }
+
+    // ==================== 时区时间显示（配置页按钮右侧）====================
+    private void updateTzTimeDisplay() {
+        if (mTzTimeText == null) {
+            return;
+        }
+        SharedPreferences prefs = getSharedPreferences(UI_PREFS_NAME, MODE_PRIVATE);
+        String tz1 = prefs.getString(KEY_TZ1_ID, "Asia/Shanghai");
+        String tz2 = prefs.getString(KEY_TZ2_ID, "Europe/London");
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
+        sdf.setTimeZone(TimeZone.getTimeZone(tz1));
+        String t1 = sdf.format(new Date());
+        sdf.setTimeZone(TimeZone.getTimeZone(tz2));
+        String t2 = sdf.format(new Date());
+        mTzTimeText.setText(t1 + "｜" + t2);
+    }
+
+    private void startTzUpdates() {
+        stopTzUpdates();
+        mTzUpdater = new Runnable() {
+            @Override
+            public void run() {
+                updateTzTimeDisplay();
+                mUiHandler.postDelayed(this, 60000);
+            }
+        };
+        mUiHandler.postDelayed(mTzUpdater, 60000);
+    }
+
+    private void stopTzUpdates() {
+        if (mTzUpdater != null) {
+            mUiHandler.removeCallbacks(mTzUpdater);
+            mTzUpdater = null;
+        }
     }
 
     // ==================== 深度休眠 ====================
