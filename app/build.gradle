@@ -14,8 +14,8 @@ android {
         applicationId "io.github.gjr787878.ramstatusbar"
         minSdk 31
         targetSdk 34
-        versionCode 36
-        versionName "1.5.4"
+        versionCode 37
+        versionName "1.5.5"
     }
 
     signingConfigs {
